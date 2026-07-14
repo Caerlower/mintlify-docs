@@ -8,22 +8,50 @@ When your agent calls a Nebula tool, a short chain of events happens across thre
 
 ## The three-layer architecture
 
+````mermaid
+```mermaid
+flowchart TB
+  subgraph clients [Clients]
+    CD[Claude Desktop / Cursor]
+    CC[Claude Code]
+    RM[Remote MCP / OAuth]
+  end
+
+  subgraph npm [MCP package]
+    STDIO["@nebula/mcp<br/>stdio → Hub HTTP"]
+  end
+
+  subgraph hub [Nebula Hub — apps/nebula-hub]
+    UI[Dashboard · Policy · Approvals · Connect]
+    API["/api/tools/* · /api/wallet · /api/agents"]
+    MCP["POST /mcp · OAuth DCR"]
+    PIPE[Tool pipeline + confirmations]
+    PRIVY[Privy embedded Stellar wallet]
+  end
+
+  subgraph chain [Stellar]
+    POL[Policy contract]
+    NET[Payments · x402 · MPP · Blend]
+  end
+
+  subgraph data [Data]
+    SB[(Supabase Postgres)]
+  end
+
+  CD --> STDIO
+  CC --> STDIO
+  STDIO -->|"NEBULA_TOKEN"| API
+  RM --> MCP
+  MCP --> PIPE
+  API --> PIPE
+  UI --> API
+  PIPE --> PRIVY
+  PIPE --> POL
+  PRIVY --> NET
+  PIPE --> SB
+  UI --> SB
 ```
-Your Agent (Claude / Cursor / custom)
-      │
-      │  MCP protocol (stdio or HTTP)
-      ▼
-@nebula/mcp  ──── NEBULA_TOKEN ────►  Nebula Hub
-                                          │
-                                    Policy checks
-                                    Confirmation flow
-                                    Secure key custody
-                                          │
-                                          ▼
-                                     Stellar network
-                                  (payments, policy contract,
-                                   x402, MPP, Blend, reputation)
-```
+````
 
 ### Layer 1 — The MCP package (`@nebula/mcp`)
 
@@ -93,7 +121,7 @@ From that point on, every tool call that arrives with your token is automaticall
 ## Two connection modes
 
 | Mode | When to use | How |
-|---|---|---|
+| --- | --- | --- |
 | **stdio** (`npx @nebula/mcp`) | Local desktop clients: Claude Desktop, Cursor, Claude Code | Add JSON config to the client's MCP settings |
 | **Remote MCP** (`POST /mcp`) | Hosted agents, serverless, Docker, any environment without `npx` | Send tool calls as HTTP POST with Bearer token |
 
