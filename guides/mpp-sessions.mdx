@@ -1,0 +1,257 @@
+---
+title: "Open MPP Payment Channels for Streaming Payments"
+sidebarTitle: "MPP Sessions"
+description: "Use Nebula's MPP tools to open budget-capped payment channels for streaming per-call or per-resource payments on Stellar."
+---
+
+The Micropayment Protocol (MPP) lets your agent open a pre-funded payment channel with a fixed USDC budget, then make many small off-chain payments within that budget without hitting the Stellar ledger for every request. When you close the session, a single on-chain settlement records the net spend and refunds whatever you didn't use. This makes MPP ideal for streaming workloads — video transcription APIs, per-token LLM inference, paginated data scraping, or anything where you're making dozens of small calls against a single merchant.
+
+## What MPP is
+
+MPP channels are off-chain commit channels anchored on Stellar. When you open a session, the Hub locks your `budget_usdc` in a channel. Each `mpp_fetch` call is an off-chain micropayment commitment — cryptographically signed but not broadcast to the ledger yet. Only `mpp_close_session` triggers the final on-chain settlement, which records the total spend and returns the unused portion to your wallet. This means you get sub-second payment latency for every fetch inside the session, with full on-chain finality at the end.
+
+<Note>
+  MPP uses the **`@stellar/mpp` v0.7.1** library under the hood. Sessions are scoped to a single merchant (recipient). If you need to pay multiple merchants, open a separate session for each.
+</Note>
+
+## Session lifecycle
+
+<Steps>
+  <Step title="Open a session with mpp_open_session">
+    Reserve a USDC budget and (optionally) specify the merchant's Stellar address. The Hub returns a `session_id`, channel details, and a `demo_url` you can use for testing without a real merchant server.
+
+    <ParamField path="budget_usdc" type="number" required>
+      The maximum USDC this session can spend. Locked in the channel until you close the session.
+    </ParamField>
+
+    <ParamField path="recipient" type="string">
+      Optional Stellar address (`G...`) of the merchant receiving payments. If omitted, the Hub uses its demo merchant address so you can test the full flow immediately.
+    </ParamField>
+
+    **Example:**
+
+    ```json
+    {
+      "tool": "mpp_open_session",
+      "arguments": {
+        "budget_usdc": 2.00,
+        "recipient": "GBMERCHANT7EXAMPLEADDRESSXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+      }
+    }
+    ```
+
+    **Response:**
+
+    ```json
+    {
+      "status": "ok",
+      "data": {
+        "session_id": "mpp_sess_01HXYZ",
+        "channel_id": "ch_abc123",
+        "budget_usdc": 2.00,
+        "demo_url": "https://nebulaonchain.xyz/mpp/demo/ch_abc123",
+        "recipient": "GBMERCHANT7EXAMPLEADDRESSXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+      }
+    }
+    ```
+
+    <Tip>
+      Save the `demo_url` from the response. You can pass it directly to `mpp_fetch` to test the full channel lifecycle without setting up your own merchant server.
+    </Tip>
+  </Step>
+
+  <Step title="Fetch resources with mpp_fetch">
+    Call `mpp_fetch` with any MPP-gated URL. Each call makes an off-chain payment commitment from the session budget — fast and low-latency.
+
+    <ParamField path="url" type="string" required>
+      The MPP-gated URL to fetch. Use the `demo_url` from step 1 for testing.
+    </ParamField>
+
+    **Example:**
+
+    ```json
+    {
+      "tool": "mpp_fetch",
+      "arguments": {
+        "url": "https://api.example-streaming.com/v1/transcribe?chunk=42"
+      }
+    }
+    ```
+
+    **Response:**
+
+    ```json
+    {
+      "status": "ok",
+      "data": {
+        "http_status": 200,
+        "committed_usdc": 0.003,
+        "session_spent_usdc": 0.021,
+        "session_remaining_usdc": 1.979,
+        "body": "{ \"transcript\": \"...\" }"
+      }
+    }
+    ```
+
+    You can call `mpp_fetch` as many times as needed until the session budget is exhausted. Each call is an independent off-chain commit.
+
+    <Warning>
+      If `session_remaining_usdc` reaches zero, further `mpp_fetch` calls will fail. Either close the session (settling what was spent) or open a new session with additional budget.
+    </Warning>
+  </Step>
+
+  <Step title="Check status with mpp_status">
+    At any point, check the current session state — total spent, remaining budget, and channel health.
+
+    **Example:**
+
+    ```json
+    {
+      "tool": "mpp_status",
+      "arguments": {}
+    }
+    ```
+
+    **Response:**
+
+    ```json
+    {
+      "status": "ok",
+      "data": {
+        "session_id": "mpp_sess_01HXYZ",
+        "channel_id": "ch_abc123",
+        "budget_usdc": 2.00,
+        "spent_usdc": 0.156,
+        "remaining_usdc": 1.844,
+        "channel_state": "open",
+        "fetch_count": 52,
+        "opened_at": "2024-06-10T12:00:00Z"
+      }
+    }
+    ```
+
+    `mpp_status` takes no parameters — it reads the currently active session. Only one session can be active per agent at a time.
+  </Step>
+
+  <Step title="Close the session with mpp_close_session">
+    When your work is done, close the session. Nebula submits the final on-chain settlement for the total spend and refunds the unused portion of your deposit back to your wallet.
+
+    **Example:**
+
+    ```json
+    {
+      "tool": "mpp_close_session",
+      "arguments": {}
+    }
+    ```
+
+    **Response:**
+
+    ```json
+    {
+      "status": "ok",
+      "data": {
+        "session_id": "mpp_sess_01HXYZ",
+        "total_spent_usdc": 0.156,
+        "refunded_usdc": 1.844,
+        "stellar_tx_hash": "a1b2c3d4e5f6...",
+        "settled_at": "2024-06-10T12:47:33Z"
+      }
+    }
+    ```
+
+    <Note>
+      Always close sessions when you're done. Unclosed sessions hold your budget locked in the channel. If your agent process exits without closing, the session can be recovered via the Nebula dashboard at [nebulaonchain.xyz](https://nebulaonchain.xyz).
+    </Note>
+  </Step>
+</Steps>
+
+## Session budget vs. spending policy
+
+MPP sessions interact with your Nebula spending policy in a specific way:
+
+- **Opening a session** (`mpp_open_session`) locks the `budget_usdc` amount. This lock uses `ignoreSpendCaps` internally so the channel reservation is not double-counted against your per-transaction cap. The Hub enforces that the budget is within your overall policy.
+- **Individual `mpp_fetch` calls** count toward your daily spending caps. Each off-chain commit is tracked and contributes to `spent_today_usdc` in `get_policy_status`.
+- **Closing a session** settles only the amount actually committed — the refunded portion is released and does not count as spend.
+
+This means opening a $5.00 session with a $1.00 per-transaction cap is allowed — the channel lock is treated as a single reserved budget. But if your daily cap is $3.00 and you commit more than $3.00 in individual fetches, the session will be blocked before you hit that limit.
+
+## Full example: agent scraping a paywalled data feed
+
+```text
+User: Scrape the last 100 hourly data points from the premium analytics feed.
+
+Agent: I'll open an MPP session with enough budget for 100 calls at ~$0.002 each.
+
+[Tool call: mpp_open_session]
+{
+  "tool": "mpp_open_session",
+  "arguments": {
+    "budget_usdc": 0.50,
+    "recipient": "GBDATAVENDORADDRESSXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+  }
+}
+
+[Result: session opened, demo_url available]
+
+[Tool call loop: mpp_fetch × 100]
+{
+  "tool": "mpp_fetch",
+  "arguments": {
+    "url": "https://analytics.example.com/v1/hourly?t=1718000000"
+  }
+}
+... (repeated for each hour)
+
+[Tool call: mpp_status — mid-session check]
+{
+  "tool": "mpp_status",
+  "arguments": {}
+}
+[Result: spent 0.198 USDC, 0.302 remaining, 99 fetches]
+
+[Tool call: mpp_close_session]
+{
+  "tool": "mpp_close_session",
+  "arguments": {}
+}
+[Result: settled 0.200 USDC on-chain, refunded 0.300 USDC]
+
+Agent: Done. Scraped 100 data points. Total cost: $0.20 USDC. $0.30 refunded.
+```
+
+## Testing with demo_url
+
+The `demo_url` returned by `mpp_open_session` is a Hub-hosted endpoint that accepts MPP payments against your channel — no merchant server required. Use it to:
+
+- Verify the full open → fetch → close lifecycle in testnet
+- Benchmark how many calls fit in a given budget
+- Test your agent's error handling when budget runs out
+
+```json
+{
+  "tool": "mpp_fetch",
+  "arguments": {
+    "url": "https://nebulaonchain.xyz/mpp/demo/ch_abc123"
+  }
+}
+```
+
+The demo endpoint returns a simple acknowledgement body and a small per-call charge, letting you run through the full session lifecycle quickly.
+
+## Practical tips
+
+<CardGroup cols={2}>
+  <Card title="Size budget to the task" icon="ruler">
+    Estimate your call count × per-call cost and add 20% buffer. Oversizing wastes locked capital; undersizing means a mid-task budget exhaustion and another session open.
+  </Card>
+  <Card title="Close sessions promptly" icon="circle-check">
+    Budget is locked until settlement. A closed session with $1.50 returned is better than an idle open session holding $2.00 offline.
+  </Card>
+  <Card title="Use mpp_status before long loops" icon="gauge">
+    Check remaining budget before starting a large fetch batch. If `remaining_usdc` is low, top up with a new session rather than failing halfway through.
+  </Card>
+  <Card title="One active session at a time" icon="layer-group">
+    Nebula supports one active MPP session per agent. If you need to pay two different merchants simultaneously, close the first session before opening the second.
+  </Card>
+</CardGroup>

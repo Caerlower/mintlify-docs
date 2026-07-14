@@ -1,0 +1,99 @@
+---
+title: "mpp_status — Check Active MPP Session Status"
+sidebarTitle: "mpp_status"
+description: "View the current MPP session's budget, amount spent, remaining balance, and channel state."
+---
+
+`mpp_status` returns a snapshot of your currently active MPP payment channel. Use it to check how much budget you have left before making more `mpp_fetch` calls, or to confirm that a session is open before starting a batch of requests.
+
+This tool takes no parameters and always reflects the state of the single active session for your wallet.
+
+## Parameters
+
+`mpp_status` takes no parameters.
+
+## Response
+
+### Active session
+
+```json title="Active session response"
+{
+  "status": "ok",
+  "data": {
+    "channel_id": "ch_4f8a2b1e",
+    "budget_usdc": 1.00,
+    "spent_usdc": 0.013,
+    "remaining_usdc": 0.987,
+    "recipient": "GDEMO7EXAMPLE8STELLARADDRESS9FORMPPCHANNEL0RECIP",
+    "session_state": "open"
+  }
+}
+```
+
+<ResponseField name="data.channel_id" type="string">
+  The unique identifier for the active MPP channel.
+</ResponseField>
+
+<ResponseField name="data.budget_usdc" type="number">
+  The total USDC budget locked into the channel when it was opened.
+</ResponseField>
+
+<ResponseField name="data.spent_usdc" type="number">
+  The cumulative USDC committed to the channel across all `mpp_fetch` calls so far in this session.
+</ResponseField>
+
+<ResponseField name="data.remaining_usdc" type="number">
+  The USDC still available for further `mpp_fetch` calls. Equal to `budget_usdc − spent_usdc`.
+</ResponseField>
+
+<ResponseField name="data.recipient" type="string">
+  The Stellar address of the channel recipient.
+</ResponseField>
+
+<ResponseField name="data.session_state" type="string">
+  Current lifecycle state of the channel. Possible values:
+
+  - `"open"` — session is active and ready for `mpp_fetch` calls
+  - `"settling"` — `mpp_close_session` has been called and the on-chain transaction is pending
+  - `"closed"` — settlement is complete; no further calls can be made on this session
+</ResponseField>
+
+### No active session
+
+```json title="No active session"
+{
+  "status": "ok",
+  "data": {
+    "session_state": "none"
+  }
+}
+```
+
+## When to use
+
+- **Before a batch of `mpp_fetch` calls**: confirm a session is open and check `remaining_usdc` to ensure you have enough budget.
+- **During a long-running loop**: periodically poll `mpp_status` to catch a near-exhausted budget before the next call fails.
+- **After `mpp_close_session`**: verify the session has reached `"closed"` state.
+
+## Example
+
+```json title="Tool call"
+{
+  "tool": "mpp_status",
+  "input": {}
+}
+```
+
+```json title="Response"
+{
+  "status": "ok",
+  "data": {
+    "channel_id": "ch_4f8a2b1e",
+    "budget_usdc": 1.00,
+    "spent_usdc": 0.013,
+    "remaining_usdc": 0.987,
+    "recipient": "GDEMO7EXAMPLE8STELLARADDRESS9FORMPPCHANNEL0RECIP",
+    "session_state": "open"
+  }
+}
+```

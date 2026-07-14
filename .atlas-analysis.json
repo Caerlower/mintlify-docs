@@ -1,19 +1,11 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "name": "Nebula",
+  "projectType": "saas",
+  "projectName": "Nebula",
+  "projectDescription": "Nebula is an MCP that gives any AI agent a Stellar wallet — with automated yield, x402 & MPP payments, on-chain spending policy, and reputation, so agents can pay and earn on-chain without holding private keys.",
   "theme": "luma",
-  "colors": {
-    "primary": "#8E6BFF",
-    "light": "#3ECFC1",
-    "dark": "#0A0912"
-  },
-  "favicon": "/favicon.svg",
-  "navbar": {
-    "primary": {
-      "type": "github",
-      "href": "https://github.com/Caerlower/Nebula"
-    }
-  },
+  "primaryColor": "#8E6BFF",
+  "lightColor": "#3ECFC1",
+  "darkColor": "#0A0912",
   "navigation": {
     "tabs": [
       {
@@ -111,5 +103,42 @@
         ]
       }
     ]
-  }
+  },
+  "keyFeatures": [
+    "Non-custodial agent wallet — private keys stay in Privy, agents only use nbl_live_… tokens",
+    "On-chain spending policy via Soroban contract — enforced at the chain level, not config",
+    "x402 payments — agents auto-pay HTTP 402 paywalls with Stellar USDC",
+    "MPP (Micropayment Protocol) sessions — streaming per-call payments with budget control",
+    "Automated treasury yield — idle funds auto-earn on Blend pools and return on demand",
+    "Human confirmation flow — high-risk transfers require explicit human approval",
+    "Stellar8004 on-chain agent reputation — every action builds a verifiable track record",
+    "Remote MCP via Streamable HTTP + OAuth DCR — no stdio package required for hosted agents",
+    "Works with Claude Desktop, Cursor, Claude Code, and any MCP-compatible framework"
+  ],
+  "publicApiSurface": [
+    "ping",
+    "get_address",
+    "check_balance",
+    "request_funding",
+    "transfer",
+    "x402_fetch",
+    "x402_pay",
+    "mpp_open_session",
+    "mpp_fetch",
+    "mpp_status",
+    "mpp_close_session",
+    "blend_check_rates",
+    "get_treasury_status",
+    "spending_report",
+    "get_policy_status",
+    "await_confirmation",
+    "register_identity",
+    "get_my_reputation",
+    "POST /api/tools/:name",
+    "POST /mcp (Streamable HTTP MCP)",
+    "GET /.well-known/oauth-authorization-server",
+    "POST /api/oauth/register",
+    "GET /authorize",
+    "POST /oauth/token"
+  ]
 }

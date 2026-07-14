@@ -1,0 +1,120 @@
+---
+title: "Nebula MCP Tools: Complete Reference Overview"
+sidebarTitle: "Overview"
+description: "Browse all MCP tools available to your Nebula agent, organized by category: wallet, payments, treasury, policy, and identity."
+---
+
+Nebula exposes its capabilities as a set of named tools delivered over the [Model Context Protocol (MCP)](https://modelcontextprotocol.io). When an AI agent connects to Nebula, it discovers these tools automatically and can call them in natural conversation. Every tool call travels through the Nebula Hub at `https://nebulaonchain.xyz`, which enforces your spending policy, obtains human confirmation when required, and submits signed transactions to the Stellar network on the agent's behalf.
+
+## Tool call anatomy
+
+An agent invokes a tool by name and passes a JSON object whose keys match that tool's parameter schema. No special client code is needed — any MCP-compatible runtime (Claude Desktop, a custom agent loop, etc.) handles the wire protocol automatically.
+
+Each reference page in this section documents:
+
+- **Description** — what the tool does and when to use it
+- **Parameters** — the exact fields the tool accepts, their types, and whether they are required
+- **Response** — the fields returned on success, and any special status codes
+- **Examples** — a ready-to-copy call and response pair
+
+## Response structure
+
+Every Nebula tool response is a JSON object that always includes a top-level `status` field. The possible values are:
+
+| Status | Meaning |
+|---|---|
+| `ok` | The tool completed successfully. Data is in the `data` field; a human-readable summary is in `message`. |
+| `error` | The tool failed. The `reason` field explains what went wrong. |
+| `confirmation_required` | The Hub has paused the action pending human approval. The `confirmation_id` field identifies the pending request; call `await_confirmation` to resume. |
+| `rejected` | A pending confirmation was denied by the human approver. The action was not taken. |
+
+## All tools by category
+
+<CardGroup cols={2}>
+  <Card title="Wallet" icon="wallet">
+    Core wallet operations: health checks, address lookup, balance queries, transfers, and funding.
+
+    | Tool | Summary |
+    |---|---|
+    | [ping](/tools/wallet/ping) | Health check — confirms tools are reachable |
+    | [get_address](/tools/wallet/get-address) | Return the agent's Stellar G… address |
+    | [check_balance](/tools/wallet/check-balance) | View XLM and USDC balances |
+    | [transfer](/tools/wallet/transfer) | Send XLM to any Stellar address |
+    | [request_funding](/tools/wallet/request-funding) | Get instructions to fund the wallet |
+  </Card>
+
+  <Card title="Payments" icon="credit-card">
+    HTTP-native payments via the x402 protocol and metered pay-per-use sessions via MPP.
+
+    | Tool | Summary |
+    |---|---|
+    | `x402_fetch` | Fetch a URL, paying the x402 toll automatically |
+    | `x402_pay` | Pay an x402 payment request directly |
+    | `mpp_open_session` | Open a metered-payment session |
+    | `mpp_fetch` | Fetch content within an active MPP session |
+    | `mpp_status` | Check the balance and status of an MPP session |
+    | `mpp_close_session` | Close an MPP session and settle the balance |
+  </Card>
+
+  <Card title="Treasury" icon="building-columns">
+    Earn yield on idle funds, monitor balances, and review spending history.
+
+    | Tool | Summary |
+    |---|---|
+    | `blend_check_rates` | Query current Blend Protocol lending rates |
+    | `get_treasury_status` | View treasury allocation and yield earned |
+    | `spending_report` | Retrieve a spending summary for a time period |
+  </Card>
+
+  <Card title="Policy & Identity" icon="shield-check">
+    Inspect spending limits, wait for human approval, and manage on-chain identity.
+
+    | Tool | Summary |
+    |---|---|
+    | `get_policy_status` | Read the current policy limits and usage |
+    | `await_confirmation` | Poll for the result of a pending confirmation |
+    | `register_identity` | Register a domain or handle as your on-chain identity |
+    | `get_my_reputation` | Read the reputation score for an identity |
+  </Card>
+</CardGroup>
+
+## Dashboard-only tools
+
+The following tools are available exclusively through the Nebula dashboard UI. They are not accessible to agent tokens via MCP, because they involve privileged configuration actions that should be performed by a human owner:
+
+| Tool | Purpose |
+|---|---|
+| `set_policy_limits` | Configure per-transaction and daily spending caps |
+| `deploy_policy` | Publish a new policy on-chain |
+| `blend_deposit` | Deposit funds into Blend Protocol for yield |
+| `blend_withdraw` | Withdraw funds from Blend Protocol |
+| `optimize_treasury` | Auto-rebalance treasury allocations |
+| `set_liquidity_threshold` | Set the minimum liquid XLM balance to maintain |
+
+Log in to your dashboard at [nebulaonchain.xyz](https://nebulaonchain.xyz) to configure these settings.
+
+## Calling tools directly over HTTP
+
+Advanced users can bypass MCP and call the Hub's tool API directly. This is useful for server-side integrations or testing.
+
+**Endpoint:** `POST https://nebulaonchain.xyz/api/tools/:name`
+
+**Headers:**
+
+```http
+Authorization: Bearer nbl_live_…
+Content-Type: application/json
+```
+
+**Body:** A JSON object matching the tool's parameter schema.
+
+**Example — calling `check_balance` directly:**
+
+```bash
+curl -X POST https://nebulaonchain.xyz/api/tools/check_balance \
+  -H "Authorization: Bearer nbl_live_…" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+The response shape is identical to what MCP agents receive — the same `status` field and `data` object documented on each tool's reference page.

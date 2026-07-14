@@ -1,0 +1,138 @@
+---
+title: "transfer — Send XLM to a Stellar Address"
+sidebarTitle: "transfer"
+description: "Transfer XLM from your agent's Nebula wallet to any Stellar address. Subject to policy caps and may require human confirmation."
+---
+
+The `transfer` tool sends XLM from the agent's Nebula wallet to any valid Stellar public address. The Hub converts the XLM amount to a USD equivalent using the live XLM/USD market rate and counts it against the wallet's per-transaction and daily spending caps. Transfers that exceed a cap, or that send funds to a destination the agent has never used before, may be paused and routed to a human approver before the transaction is broadcast to Stellar.
+
+## Parameters
+
+<ParamField body="destination" type="string" required>
+  The Stellar public address of the recipient. Must begin with `G` and be a valid 56-character Stellar address (e.g. `GABC…XYZ`). The Hub validates the address format before processing.
+</ParamField>
+
+<ParamField body="amount_xlm" type="number" required>
+  The amount of XLM to send. Must be a positive finite number. Fractional amounts are supported with up to seven decimal places of precision (e.g. `0.5`, `12.75`, `100`).
+</ParamField>
+
+<ParamField body="memo" type="string">
+  An optional text memo attached to the Stellar transaction. Maximum 28 characters. Useful for tagging payments with an order ID, a reference number, or a human-readable note. The memo is visible on-chain.
+</ParamField>
+
+<ParamField body="reason" type="string">
+  A machine-readable tag that categorises the purpose of this transfer. Used in spending reports and policy audit logs. Defaults to `"user_requested"` if not provided.
+
+  Allowed values:
+  - `user_requested` — a transfer explicitly requested by a user or the agent itself
+  - `x402_payment` — a payment made to settle an x402 HTTP toll
+  - `blend_operation` — a movement of funds related to a Blend Protocol position
+  - `other` — any other programmatic transfer
+</ParamField>
+
+## Policy behaviour
+
+Before broadcasting the transaction, the Hub evaluates the transfer against your active spending policy:
+
+- The `amount_xlm` is converted to USD at the live market rate to give a USDC-equivalent amount.
+- This equivalent is checked against both the **per-transaction cap** and the rolling **daily cap**.
+- If either cap would be exceeded, or if the `destination` address has never received funds from this wallet before, the Hub returns `confirmation_required` instead of immediately submitting the transaction.
+
+## Response
+
+### Successful transfer
+
+<ResponseField name="status" type="string">
+  `"ok"` when the transaction was submitted and confirmed on Stellar.
+</ResponseField>
+
+<ResponseField name="data.transaction_hash" type="string">
+  The Stellar transaction hash (64 hex characters). Use this to look up the transaction on [Stellar Expert](https://stellar.expert) or [Stellarchain](https://stellarchain.io).
+</ResponseField>
+
+<ResponseField name="data.amount_xlm" type="string">
+  The amount of XLM that was sent, as a decimal string.
+</ResponseField>
+
+<ResponseField name="data.destination" type="string">
+  The destination Stellar address the funds were sent to, echoed back for confirmation.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  A human-readable confirmation string summarising the transfer.
+</ResponseField>
+
+### Confirmation required
+
+<ResponseField name="status" type="string">
+  `"confirmation_required"` when the Hub has paused the transfer pending human approval.
+</ResponseField>
+
+<ResponseField name="confirmation_id" type="string">
+  An opaque identifier for the pending approval request. Pass this to the `await_confirmation` tool to poll for the outcome.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  A description of why confirmation was required (e.g. new destination, cap proximity).
+</ResponseField>
+
+## Examples
+
+### Successful transfer
+
+**Call:**
+
+```json
+{
+  "destination": "GBFSOIY52ZUWZGSCYWRXBBKJKZB5XFXO5X7J7AEACPFN7O3NBSHW3M5",
+  "amount_xlm": 10,
+  "memo": "invoice-8821",
+  "reason": "user_requested"
+}
+```
+
+**Response:**
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "transaction_hash": "a3f9c2e1b4d7890a1234567890abcdef1234567890abcdef1234567890abcdef12",
+    "amount_xlm": "10.0000000",
+    "destination": "GBFSOIY52ZUWZGSCYWRXBBKJKZB5XFXO5X7J7AEACPFN7O3NBSHW3M5"
+  },
+  "message": "Sent 10.0000000 XLM to GBFSOIY5…W3M5 (tx: a3f9c2e1…)"
+}
+```
+
+### Confirmation required
+
+**Call:**
+
+```json
+{
+  "destination": "GD7NEWADDRESS1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890",
+  "amount_xlm": 500,
+  "reason": "user_requested"
+}
+```
+
+**Response:**
+
+```json
+{
+  "status": "confirmation_required",
+  "confirmation_id": "conf_01HXYZ9ABCDE3FGH",
+  "message": "Transfer to a new destination address requires human approval. Waiting for confirmation."
+}
+```
+
+After receiving `confirmation_required`, call `await_confirmation` with the `confirmation_id` to check whether the human approved or rejected the transfer.
+
+<Warning>
+  Never pass an address that starts with `S` as the `destination`. An `S…` string is a Stellar **secret key** — sending funds to a secret key is not a valid Stellar operation and will fail. Always use the recipient's public key (`G…`).
+</Warning>
+
+<Note>
+  The `transfer` tool only moves **XLM**. To transfer USDC or other Stellar assets, use the appropriate payment tool for that asset.
+</Note>

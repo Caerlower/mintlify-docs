@@ -1,0 +1,212 @@
+---
+title: "Make x402 Payments from Your AI Agent"
+sidebarTitle: "x402 Payments"
+description: "Use Nebula's x402_fetch and x402_pay tools to let your agent automatically pay for paywalled APIs and content using Stellar USDC."
+---
+
+The HTTP 402 Payment Required status code is the foundation of machine-native paywalls: a server responds with a payment challenge, your agent pays in USDC, and the server unlocks the resource. Nebula handles the full negotiate-pay-retry cycle for you, so your agent can access pay-per-request APIs, premium data feeds, and gated content with a single tool call.
+
+## What x402 is
+
+When your agent fetches a URL protected by x402, the server returns an HTTP `402 Payment Required` response that includes a payment challenge — the USDC amount required, the destination Stellar address, and a signed receipt format. Nebula's Hub payment stack intercepts this challenge, submits the USDC payment on Stellar, waits for confirmation, and replays the original request with a valid payment receipt attached. From your agent's perspective, the URL just resolves.
+
+<Note>
+  x402 payments are settled in **Stellar USDC** on-chain. Make sure your Nebula wallet has a USDC trustline open and a sufficient balance before calling either tool. You can check balances with `check_balance`.
+</Note>
+
+## Tools
+
+### `x402_fetch` — the primary tool
+
+Use `x402_fetch` whenever your agent needs to access a URL that might be paywalled. If the server returns a `402`, Nebula pays and retries automatically. If the server returns a `200` directly, no payment is made.
+
+<ParamField path="url" type="string" required>
+  The full URL to fetch. Must be a valid HTTP/HTTPS URL.
+</ParamField>
+
+<ParamField path="max_amount_usdc" type="number">
+  Optional per-call USDC cap. If the server's payment challenge exceeds this amount, the call fails rather than overpaying. If omitted, the Hub uses the lower of your per-transaction cap and your `cat_x402` category cap from policy.
+</ParamField>
+
+**Example — fetch a paywalled news API article:**
+
+```json
+{
+  "tool": "x402_fetch",
+  "arguments": {
+    "url": "https://api.example-news.com/articles/stellar-defi-update",
+    "max_amount_usdc": 0.05
+  }
+}
+```
+
+A successful response looks like:
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "paid_usdc": 0.02,
+    "http_status": 200,
+    "body": "{ \"headline\": \"Stellar DeFi TVL hits new high\", ... }"
+  }
+}
+```
+
+If the server demands more than your `max_amount_usdc`, the response will be:
+
+```json
+{
+  "status": "error",
+  "reason": "Payment challenge amount 0.10 USDC exceeds max_amount_usdc cap of 0.05"
+}
+```
+
+---
+
+### `x402_pay` — pay a known amount directly
+
+Use `x402_pay` when you already know the exact price and want to pay without an automatic challenge/retry cycle. The destination address comes from the server's 402 challenge.
+
+<ParamField path="url" type="string" required>
+  The x402-gated URL to pay for.
+</ParamField>
+
+<ParamField path="amount_usdc" type="number" required>
+  The exact USDC amount to pay. This field is required — there is no fallback.
+</ParamField>
+
+<ParamField path="facilitator" type="string">
+  Optional facilitator identifier. Rarely needed; most x402 servers handle facilitation automatically.
+</ParamField>
+
+**Example — pay a known $0.01 API charge:**
+
+```json
+{
+  "tool": "x402_pay",
+  "arguments": {
+    "url": "https://api.example-data.com/premium/query",
+    "amount_usdc": 0.01
+  }
+}
+```
+
+<Tip>
+  Prefer `x402_fetch` over `x402_pay` in most cases. `x402_fetch` reads the actual payment challenge from the server so you never overpay or underpay. Use `x402_pay` only when you have a pre-negotiated price from a known integration.
+</Tip>
+
+## Policy integration
+
+Every x402 payment counts against your Nebula spending policy. The Hub enforces two limits before any payment is submitted:
+
+- **Per-transaction cap** (`max_per_call`): no single payment can exceed this amount.
+- **Daily cap** (`max_per_day`): total USDC spent across all tools resets every 24 hours.
+- **Category cap** (`cat_x402`): an optional per-category daily sub-limit for x402 specifically.
+
+Your `max_amount_usdc` on `x402_fetch` acts as an additional local guard on top of these policy caps. The Hub applies the most restrictive limit.
+
+Check remaining budget at any time:
+
+```json
+{
+  "tool": "get_policy_status",
+  "arguments": {}
+}
+```
+
+Example response excerpt:
+
+```json
+{
+  "max_per_call_usdc": 1.00,
+  "max_per_day_usdc": 25.00,
+  "spent_today_usdc": 3.42,
+  "remaining_today_usdc": 21.58,
+  "paused": false
+}
+```
+
+<Warning>
+  If your daily cap is exhausted, `x402_fetch` will return an error without submitting any payment. Use `get_policy_status` before high-frequency fetch loops to confirm there is remaining budget.
+</Warning>
+
+## Testing x402 on testnet
+
+<Steps>
+  <Step title="Fund your wallet with XLM">
+    Call `request_funding` to get your Friendbot URL, then open it in a browser or with `curl` to receive testnet XLM:
+
+    ```bash
+    curl "https://friendbot.stellar.org?addr=GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+    ```
+  </Step>
+  <Step title="Add a USDC trustline and get test USDC">
+    Open the [Circle USDC testnet faucet](https://faucet.circle.com/), connect your Stellar testnet address, and claim test USDC. You must have the USDC trustline open on your wallet first — the Nebula Hub's Connect page handles this.
+  </Step>
+  <Step title="Set policy caps permissive enough for micropayments">
+    Via the [Nebula dashboard](https://nebulaonchain.xyz), set `max_per_call` to at least `0.10` USDC and `max_per_day` to a comfortable ceiling for your tests.
+  </Step>
+  <Step title="Call x402_fetch">
+    Use a real x402-enabled test endpoint, or point to any URL that returns `402` with a valid Stellar payment challenge:
+
+    ```json
+    {
+      "tool": "x402_fetch",
+      "arguments": {
+        "url": "https://your-test-endpoint.example.com/resource",
+        "max_amount_usdc": 0.10
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+## Example agent conversation
+
+Below is a realistic exchange showing how an AI agent uses `x402_fetch` to access a paywalled market data API:
+
+```text
+User: Get me the current Stellar XLM/USD price from the premium data feed.
+
+Agent: I'll fetch that from the premium feed. Let me call x402_fetch — if the
+       endpoint requires payment it will be handled automatically.
+
+[Tool call]
+{
+  "tool": "x402_fetch",
+  "arguments": {
+    "url": "https://data.example-finance.com/v2/prices/XLM-USD",
+    "max_amount_usdc": 0.05
+  }
+}
+
+[Tool result]
+{
+  "status": "ok",
+  "data": {
+    "paid_usdc": 0.01,
+    "http_status": 200,
+    "body": "{\"pair\":\"XLM-USD\",\"price\":0.1247,\"timestamp\":1718000000}"
+  }
+}
+
+Agent: The current XLM/USD price is $0.1247. (Cost: $0.01 USDC)
+```
+
+## Tips
+
+<CardGroup cols={2}>
+  <Card title="Always set max_amount_usdc" icon="shield-halved">
+    Even a generous cap like `0.50` USDC protects your agent from unexpected charges on misconfigured or malicious servers. Without it, Hub policy caps are your only guard.
+  </Card>
+  <Card title="Check budget before loops" icon="chart-bar">
+    Before running a batch of x402 fetches, call `get_policy_status` to confirm `remaining_today_usdc` is sufficient. Failing halfway through a task wastes work.
+  </Card>
+  <Card title="Prefer x402_fetch over x402_pay" icon="rotate">
+    `x402_fetch` reads the live payment challenge so the amount is always correct. Use `x402_pay` only when price is pre-negotiated and you're certain of the amount.
+  </Card>
+  <Card title="Watch spending_report" icon="receipt">
+    Call `spending_report` to see a line-item breakdown of recent x402 charges and verify payments landed correctly.
+  </Card>
+</CardGroup>

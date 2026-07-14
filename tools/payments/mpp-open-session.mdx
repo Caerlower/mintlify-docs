@@ -1,0 +1,102 @@
+---
+title: "mpp_open_session — Open a Micropayment Channel"
+sidebarTitle: "mpp_open_session"
+description: "Open an MPP payment channel with a USDC budget for streaming per-call payments. Returns a demo URL for testing."
+---
+
+`mpp_open_session` opens a Micropayment Protocol (MPP) payment channel and locks a USDC budget into it. Once a session is open, each call to `mpp_fetch` makes an off-chain channel commitment against that budget — no on-chain transaction is needed per request. The channel is settled on Stellar only when you call `mpp_close_session`, at which point any unused funds are returned to your wallet.
+
+Budget locking uses `ignoreSpendCaps` internally, meaning the channel-open operation itself does not count as a regular spend event against your daily policy cap. The actual spend is recorded when the channel is settled on close.
+
+## Parameters
+
+<ParamField path="budget_usdc" type="number" required>
+  Total USDC budget to lock into this channel. Must be a positive finite number. This is the maximum you can spend across all `mpp_fetch` calls within the session. Any portion not consumed is refunded when the session is closed.
+</ParamField>
+
+<ParamField path="recipient" type="string">
+  The Stellar address (`G…`) of the payment recipient — typically the merchant or API provider running the MPP-gated service. When omitted, the Hub assigns the channel recipient based on the first `mpp_fetch` URL or a preconfigured default. Must be a valid Stellar public key starting with `G`.
+</ParamField>
+
+## Response
+
+### Success
+
+```json title="Success response"
+{
+  "status": "ok",
+  "data": {
+    "channel_id": "ch_4f8a2b1e",
+    "budget_usdc": 1.00,
+    "recipient": "GDEMO7EXAMPLE8STELLARADDRESS9FORMPPCHANNEL0RECIP",
+    "demo_url": "https://hub.nebula.dev/mpp-demo/ch_4f8a2b1e",
+    "session_state": "open"
+  }
+}
+```
+
+<ResponseField name="status" type="string">
+  Always `"ok"` on success.
+</ResponseField>
+
+<ResponseField name="data.channel_id" type="string">
+  Unique identifier for the newly opened MPP channel. Retained by the Hub for the lifetime of the session.
+</ResponseField>
+
+<ResponseField name="data.budget_usdc" type="number">
+  The USDC budget locked into this channel, matching your input.
+</ResponseField>
+
+<ResponseField name="data.recipient" type="string">
+  The Stellar address of the channel recipient.
+</ResponseField>
+
+<ResponseField name="data.demo_url" type="string">
+  A Hub-hosted test URL you can pass directly to `mpp_fetch` to verify the session is working without needing your own merchant server. Useful during development and debugging.
+</ResponseField>
+
+<ResponseField name="data.session_state" type="string">
+  The current state of the session. Will be `"open"` immediately after creation.
+</ResponseField>
+
+### Error
+
+```json title="Error response"
+{
+  "status": "error",
+  "reason": "Insufficient USDC balance to lock channel budget of 1.00 USDC"
+}
+```
+
+## Next steps
+
+Once your session is open, use `mpp_fetch` to fetch MPP-gated URLs within this channel. Use `mpp_status` at any time to check remaining budget. Call `mpp_close_session` when you are finished to settle on-chain and reclaim unused funds.
+
+## Example
+
+```json title="Tool call"
+{
+  "tool": "mpp_open_session",
+  "input": {
+    "budget_usdc": 1.00,
+    "recipient": "GDEMO7EXAMPLE8STELLARADDRESS9FORMPPCHANNEL0RECIP"
+  }
+}
+```
+
+```json title="Response"
+{
+  "status": "ok",
+  "data": {
+    "channel_id": "ch_4f8a2b1e",
+    "budget_usdc": 1.00,
+    "recipient": "GDEMO7EXAMPLE8STELLARADDRESS9FORMPPCHANNEL0RECIP",
+    "demo_url": "https://hub.nebula.dev/mpp-demo/ch_4f8a2b1e",
+    "session_state": "open"
+  }
+}
+```
+
+<Note>
+  Only one MPP session can be active at a time per Nebula wallet. Opening a new session while one is already open will return an error. Close the existing session first with `mpp_close_session`.
+</Note>

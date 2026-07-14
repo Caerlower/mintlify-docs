@@ -1,0 +1,137 @@
+---
+title: "Human Confirmation Flow for High-Value Transfers"
+sidebarTitle: "Confirmations"
+description: "When a transfer requires human approval, Nebula pauses the agent and waits for you to approve or reject from the dashboard."
+---
+
+Nebula is designed to let your agent operate autonomously for routine payments while still requiring your explicit approval before sending money to an unfamiliar destination. The confirmation flow is what makes that possible: when a transfer triggers the confirm outcome in the policy matrix, your agent pauses, the Hub queues an approval request, and your agent resumes only after you act on it. This page explains exactly how that flow works from both the agent's and the human's perspective.
+
+## When confirmations are triggered
+
+A confirmation is required when a transfer meets all of the following conditions simultaneously:
+
+- The policy is **not paused**.
+- The destination address is **not on the denylist**.
+- The amount is **within the daily cap** (adding it to today's spend does not exceed the limit).
+- The amount is **within the per-transaction cap**.
+- The amount is **above the micro threshold** (so it is not auto-approved as a small payment).
+- The destination address is **not on the whitelist** (so it is not auto-approved as a known destination).
+
+In plain terms: a confirmation fires when your agent wants to send a meaningful amount of money to an address it has not sent to before.
+
+## What the agent receives
+
+When a confirmation is required, the `transfer` tool (or any other tool that triggers the flow) returns a `confirmation_required` result instead of executing the transaction:
+
+```json
+{
+  "status": "confirmation_required",
+  "confirmation_id": "cnf_01abc…",
+  "approve_url": "https://nebulaonchain.xyz/approve/cnf_01abc…",
+  "expires_in": 300,
+  "summary": "Transfer 5.00 XLM (~$1.20 USDC) to GDEST…XYZ"
+}
+```
+
+- `confirmation_id` — a unique ID your agent uses to poll for the outcome.
+- `approve_url` — a direct link to the approval page you can open immediately.
+- `expires_in` — seconds until the confirmation expires (typically 300 seconds / 5 minutes).
+- `summary` — a human-readable description of the pending transaction.
+
+## The `await_confirmation` tool
+
+Your agent should follow up a `confirmation_required` response by calling `await_confirmation` with the `confirmation_id`. This tool polls the Hub for up to 25 seconds and returns when an outcome is available or when the polling window closes.
+
+```json
+{
+  "tool": "await_confirmation",
+  "input": {
+    "confirmation_id": "cnf_01abc…"
+  }
+}
+```
+
+If you approve or reject within 25 seconds, `await_confirmation` returns immediately with the result. If no action has been taken yet, it returns a `still_pending` response — and your agent should call it again. A well-behaved agent loops on `await_confirmation` until the confirmation is resolved or expired.
+
+## How you approve or reject
+
+<Tabs>
+  <Tab title="Dashboard Approvals tab">
+    Sign in at [nebulaonchain.xyz](https://nebulaonchain.xyz) and go to the **Approvals** tab in the sidebar. Pending confirmations appear here with the destination address, amount, USDC equivalent, and a timestamp. Click **Approve** or **Reject** for each one.
+  </Tab>
+
+  <Tab title="Direct approval URL">
+    Every confirmation response includes an `approve_url`. Opening that URL in your browser takes you directly to the approval page for that specific transaction — no navigation required. This is useful if your agent surfaces the URL in its response, or if you set up a notification that includes it.
+
+    ```
+    https://nebulaonchain.xyz/approve/cnf_01abc…
+    ```
+  </Tab>
+</Tabs>
+
+## Outcomes
+
+| Outcome | What happens |
+|---|---|
+| **Approved** | The Hub proceeds with signing and broadcasting the transaction. `await_confirmation` returns `status: "ok"` with the transaction hash. |
+| **Rejected** | The transaction is cancelled. `await_confirmation` returns `status: "rejected"`. No funds move. |
+| **Expired** | If no action is taken before `expires_in` seconds, the confirmation is automatically cancelled. `await_confirmation` returns `status: "rejected"` with reason `expired`. |
+
+## Example agent flow
+
+Here is a representative example of how an agent should handle a transfer that triggers a confirmation:
+
+```typescript
+// Step 1: Call transfer
+const result = await callTool("transfer", {
+  destination: "GDEST…XYZ",
+  amount_xlm: 5.0,
+  memo: "API payment"
+});
+
+if (result.status === "ok") {
+  // Auto-approved — transaction already broadcast
+  console.log("Transaction hash:", result.tx_hash);
+
+} else if (result.status === "confirmation_required") {
+  console.log("Waiting for approval:", result.summary);
+  console.log("Approve at:", result.approve_url);
+
+  // Step 2: Poll until resolved
+  let outcome;
+  do {
+    outcome = await callTool("await_confirmation", {
+      confirmation_id: result.confirmation_id
+    });
+
+    if (outcome.status === "pending") {
+      // Still waiting — loop and try again
+      console.log("Still waiting for confirmation…");
+    }
+  } while (outcome.status === "pending");
+
+  if (outcome.status === "ok") {
+    console.log("Approved! Transaction hash:", outcome.tx_hash);
+  } else {
+    console.log("Transaction cancelled:", outcome.reason);
+  }
+
+} else if (result.status === "rejected") {
+  // Rejected by policy — no confirmation needed
+  console.log("Rejected by policy:", result.reason);
+}
+```
+
+## Best practices
+
+<Tip>
+  Set your **micro threshold** high enough to cover the routine payments your agent makes without interruption. If your agent regularly pays $0.10–$0.50 USDC for API calls, set the micro threshold to $1 USDC so those payments flow automatically. Reserve confirmations for genuinely unusual or high-value transfers.
+</Tip>
+
+<Tip>
+  Add frequently-used destination addresses to your **whitelist**. A whitelisted address is auto-approved up to the per-transaction cap, so your agent can pay it repeatedly without triggering confirmations — even for amounts above the micro threshold.
+</Tip>
+
+<Warning>
+  Confirmations expire after a few minutes. If you are away from the dashboard and your agent is waiting, it will eventually receive an `expired` rejection and report the failure. Design your agent to handle this gracefully — for example, by surfacing the `approve_url` to you in a message or notification so you can act quickly.
+</Warning>

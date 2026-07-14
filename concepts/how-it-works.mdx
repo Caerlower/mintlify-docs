@@ -1,0 +1,100 @@
+---
+title: "How Nebula Works: MCP, Hub, and Stellar"
+sidebarTitle: "How It Works"
+description: "Understand how Nebula's MCP server, Hub, and Stellar blockchain fit together to give AI agents safe, bounded on-chain capabilities."
+---
+
+When your agent calls a Nebula tool, a short chain of events happens across three distinct layers before anything reaches the Stellar blockchain. Understanding those layers helps you configure Nebula well, debug unexpected behaviour, and reason about the security model. This page walks through each layer from your agent's perspective.
+
+## The three-layer architecture
+
+```
+Your Agent (Claude / Cursor / custom)
+      │
+      │  MCP protocol (stdio or HTTP)
+      ▼
+@nebula/mcp  ──── NEBULA_TOKEN ────►  Nebula Hub
+                                          │
+                                    Policy checks
+                                    Confirmation flow
+                                    Privy custody
+                                          │
+                                          ▼
+                                     Stellar network
+                                  (payments, policy contract,
+                                   x402, MPP, Blend, reputation)
+```
+
+### Layer 1 — The MCP package (`@nebula/mcp`)
+
+The `@nebula/mcp` npm package is a **thin stdio bridge**. When Claude Desktop or Cursor launches it with `npx -y @nebula/mcp`, the package starts an MCP server that speaks the standard Model Context Protocol over stdin/stdout. Every time your agent calls a tool (for example `transfer` or `check_balance`), the package serialises that call and forwards it as an HTTP request to the Hub, including your `NEBULA_TOKEN` as a Bearer header.
+
+That is all it does. There is no key material, no policy logic, and no Stellar SDK inside the package. It is intentionally minimal so that the security-critical work stays in one place: the Hub.
+
+<Note>
+  For hosted agents that cannot run a local subprocess, the Hub also accepts tool calls directly at `POST https://nebulaonchain.xyz/mcp` with a Bearer token. See [Connect Your Agent](/connect-agent) for details.
+</Note>
+
+### Layer 2 — The Nebula Hub
+
+The Hub is the heart of Nebula. It is a Next.js application running at [nebulaonchain.xyz](https://nebulaonchain.xyz) that handles everything that requires trust:
+
+- **Authentication** — validates your `NEBULA_TOKEN`, looks up the associated agent and wallet.
+- **Policy enforcement** — before any transaction is signed, the Hub runs the full confirmation matrix against your current policy settings (see [Spending Policy](/concepts/spending-policy)).
+- **Human confirmations** — if a transfer requires your approval, the Hub pauses execution and waits. Your agent polls with `await_confirmation`; you approve or reject from the dashboard.
+- **Privy custody** — the Hub holds your wallet's private key inside Privy's embedded wallet infrastructure. Signing happens here, server-side. The key never travels over the network.
+- **Dashboard** — the web UI where you manage policy, review approvals, view transaction history, and create new agent tokens.
+
+### Layer 3 — Stellar
+
+Stellar is where the actual on-chain state lives:
+
+- **Payments** — XLM and USDC transfers broadcast to the Stellar network.
+- **Policy contract** — a Soroban smart contract that enforces spend caps on-chain when `POLICY_CONTRACT_ID` is configured, providing a second independent layer of enforcement.
+- **x402 payments** — pay-per-request HTTP access settled in Stellar USDC.
+- **MPP sessions** — metered payment channel sessions for multi-step tasks.
+- **Blend protocol** — your idle USDC earns yield automatically via Blend.
+- **Reputation** — every on-chain action contributes to a Stellar-native agent reputation score.
+
+## The flow of a single tool call
+
+Here is what happens when your agent calls `transfer`:
+
+<Steps>
+  <Step title="Agent calls the tool">
+    Your agent (Claude, Cursor, or a custom client) decides to call `transfer` with a destination address, amount, and optional memo. It sends this as a standard MCP tool-call message.
+  </Step>
+  <Step title="MCP package forwards to Hub">
+    `@nebula/mcp` receives the call over stdio and sends `POST /api/tools/transfer` to the Hub with your `NEBULA_TOKEN` in the `Authorization` header.
+  </Step>
+  <Step title="Hub authenticates and loads context">
+    The Hub validates the token, loads your agent record, resolves your Stellar address, fetches your current policy snapshot (caps, whitelist, denylist, daily spend so far), and converts the XLM amount to a USDC equivalent using the live XLM/USD rate.
+  </Step>
+  <Step title="Policy matrix runs">
+    The confirmation matrix evaluates the transfer against your policy (paused? denylisted? over daily cap? over per-tx cap? within micro threshold? whitelisted destination?). The result is one of three outcomes: `auto`, `confirm`, or `reject`.
+  </Step>
+  <Step title="Outcome is acted on">
+    - **`auto`** — the Hub calls Privy to sign the Stellar transaction XDR and broadcasts it. The tool returns `status: "ok"` with the transaction hash.
+    - **`confirm`** — the Hub creates a pending confirmation record and returns `status: "confirmation_required"` with a `confirmation_id` and an `approve_url`. Your agent should call `await_confirmation` and loop until you approve or reject from the dashboard.
+    - **`reject`** — the tool returns `status: "rejected"` with the reason. No transaction is created.
+  </Step>
+</Steps>
+
+## How tokens map to wallets
+
+When you create an agent on the Connect page, Nebula:
+
+1. Creates a Privy embedded wallet on Stellar (testnet or mainnet, depending on your account setting).
+2. Records the mapping between your `nbl_live_…` token and that wallet's address in the Hub database.
+3. Associates a policy record with that agent.
+
+From that point on, every tool call that arrives with your token is automatically tied to the right address and policy — your agent never needs to specify which wallet to use.
+
+## Two connection modes
+
+| Mode | When to use | How |
+|---|---|---|
+| **stdio** (`npx @nebula/mcp`) | Local desktop clients: Claude Desktop, Cursor, Claude Code | Add JSON config to the client's MCP settings |
+| **Remote MCP** (`POST /mcp`) | Hosted agents, serverless, Docker, any environment without `npx` | Send tool calls as HTTP POST with Bearer token |
+
+Both modes authenticate with the same `nbl_live_…` token and go through the same policy enforcement pipeline on the Hub. The only difference is transport.

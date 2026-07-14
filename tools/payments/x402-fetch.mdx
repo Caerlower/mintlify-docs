@@ -1,0 +1,121 @@
+---
+title: "x402_fetch — Auto-Pay HTTP 402 Paywalls with USDC"
+sidebarTitle: "x402_fetch"
+description: "Fetch a URL and automatically pay any HTTP 402 paywall with Stellar USDC. Subject to your policy caps."
+---
+
+`x402_fetch` sends an HTTP GET request to any URL. If the server responds with an HTTP 402 Payment Required status, Nebula automatically pays the required amount in Stellar USDC and retries the request — all in a single tool call. You do not need to inspect the 402 challenge manually; the Hub payment stack handles negotiation and settlement transparently.
+
+## Parameters
+
+<ParamField path="url" type="string" required>
+  The fully-qualified URL to fetch. Must be a valid HTTP or HTTPS URL.
+</ParamField>
+
+<ParamField path="max_amount_usdc" type="number">
+  Maximum USDC you are willing to pay for this single request. If the 402 challenge demands more than this cap, the call is rejected before any payment is made. When omitted, the Hub applies your policy per-transaction cap automatically. Set this explicitly when fetching unfamiliar APIs to prevent surprise charges.
+</ParamField>
+
+## Responses
+
+### Success
+
+Returned when the URL is fetched successfully (either no payment was needed, or a payment was made and the retry succeeded).
+
+```json title="Success response"
+{
+  "status": "ok",
+  "data": {
+    "response_body": "<content returned by the server>",
+    "amount_paid_usdc": 0.01,
+    "payee": "GCKFBEIYV2U22IO2BJ4KVJOIP7XPWQGQFKKWXR6DOSJBV7STMAQSMTG",
+    "tx_hash": "a3f9...c02e"
+  }
+}
+```
+
+<ResponseField name="status" type="string">
+  Always `"ok"` on success.
+</ResponseField>
+
+<ResponseField name="data.response_body" type="string">
+  The response body returned by the server after successful payment and retry.
+</ResponseField>
+
+<ResponseField name="data.amount_paid_usdc" type="number">
+  The USDC amount actually charged. Will be `0` if no 402 was encountered.
+</ResponseField>
+
+<ResponseField name="data.payee" type="string">
+  The Stellar address that received the payment. Present only when a payment was made.
+</ResponseField>
+
+<ResponseField name="data.tx_hash" type="string">
+  The Stellar transaction hash for the payment. Present only when a payment was made.
+</ResponseField>
+
+### Confirmation required
+
+Returned when the payment would exceed the micro-payment threshold or is destined for a first-time payee that your policy flags for review. The call is paused until you explicitly confirm via `await_confirmation`.
+
+```json title="Confirmation required response"
+{
+  "status": "confirmation_required",
+  "confirmation_id": "conf_7x9k2m",
+  "reason": "First payment to new payee GCKF...SMTG",
+  "amount_usdc": 0.05,
+  "payee": "GCKFBEIYV2U22IO2BJ4KVJOIP7XPWQGQFKKWXR6DOSJBV7STMAQSMTG"
+}
+```
+
+### Error
+
+Returned when the request cannot be completed due to insufficient funds, a policy rejection, an invalid URL, or a network failure.
+
+```json title="Error response"
+{
+  "status": "error",
+  "reason": "Policy rejected: amount 1.50 USDC exceeds per-tx cap of 1.00 USDC"
+}
+```
+
+Common `reason` values:
+
+| Reason | Meaning |
+|---|---|
+| `Policy rejected: amount … exceeds per-tx cap` | The 402 challenge price is above your configured per-transaction limit. Raise the cap or set `max_amount_usdc` lower to fail fast. |
+| `Insufficient USDC balance` | Your wallet does not hold enough USDC to cover the requested amount. |
+| `max_amount_usdc exceeded` | The 402 challenge price exceeds the `max_amount_usdc` you provided. |
+| `Network error` | The remote server could not be reached. |
+
+## Policy interaction
+
+Every payment made by `x402_fetch` counts against both your **per-transaction USDC cap** and your **daily USDC spend cap**. If `max_amount_usdc` is omitted, the Hub uses `min(per_tx_cap, policy_x402_cat_cap)` as the ceiling. Requests that would push you over your daily limit are rejected before any on-chain transaction is submitted.
+
+## Example
+
+```json title="Tool call"
+{
+  "tool": "x402_fetch",
+  "input": {
+    "url": "https://api.example.com/premium-data",
+    "max_amount_usdc": 0.10
+  }
+}
+```
+
+```json title="Response"
+{
+  "status": "ok",
+  "data": {
+    "response_body": "{\"result\": \"premium content here\"}",
+    "amount_paid_usdc": 0.05,
+    "payee": "GCKFBEIYV2U22IO2BJ4KVJOIP7XPWQGQFKKWXR6DOSJBV7STMAQSMTG",
+    "tx_hash": "a3f9b812d...c02e"
+  }
+}
+```
+
+<Tip>
+  Always set `max_amount_usdc` when calling APIs you have not used before. This creates a hard ceiling so an unexpectedly expensive 402 challenge is rejected rather than paid silently.
+</Tip>

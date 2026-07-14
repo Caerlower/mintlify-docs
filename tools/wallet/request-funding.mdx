@@ -1,0 +1,94 @@
+---
+title: "request_funding — Get Instructions to Fund Your Wallet"
+sidebarTitle: "request_funding"
+description: "Returns Friendbot funding instructions for testnet, or mainnet funding instructions for the agent's Stellar address."
+---
+
+The `request_funding` tool returns the information needed to add XLM to the agent's Nebula wallet. On **testnet**, it provides a Friendbot URL that you can open in a browser or call with a GET request to receive 10,000 free test XLM. On **mainnet**, it returns the wallet's Stellar address along with instructions to send funds from a crypto exchange or an existing Stellar account. Use this tool when setting up a new wallet or when the agent needs to prompt a human to top up its balance.
+
+## Parameters
+
+`request_funding` takes no parameters. Pass an empty object `{}` as the tool input.
+
+## Response
+
+<ResponseField name="status" type="string">
+  `"ok"` on success.
+</ResponseField>
+
+<ResponseField name="data.address" type="string">
+  The agent's Stellar public key (`G…`). This is the address to fund.
+</ResponseField>
+
+<ResponseField name="data.network" type="string">
+  The Stellar network this wallet is on. Either `"testnet"` or `"mainnet"`.
+</ResponseField>
+
+<ResponseField name="data.friendbot_url" type="string | null">
+  On **testnet**: a fully-formed Friendbot URL. Make a GET request to this URL (browser, `curl`, or any HTTP client) to credit the wallet with free test XLM. \
+  On **mainnet**: always `null`. Friendbot does not exist on mainnet.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  A human-readable funding instruction, suitable for surfacing directly to a user.
+</ResponseField>
+
+## Testnet example
+
+**Call:**
+
+```json
+{}
+```
+
+**Response:**
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "address": "GBFSOIY52ZUWZGSCYWRXBBKJKZB5XFXO5X7J7AEACPFN7O3NBSHW3M5",
+    "network": "testnet",
+    "friendbot_url": "https://friendbot.stellar.org?addr=GBFSOIY52ZUWZGSCYWRXBBKJKZB5XFXO5X7J7AEACPFN7O3NBSHW3M5"
+  },
+  "message": "Fund testnet wallet via Friendbot:\nhttps://friendbot.stellar.org?addr=GBFSOIY52ZUWZGSCYWRXBBKJKZB5XFXO5X7J7AEACPFN7O3NBSHW3M5"
+}
+```
+
+To activate the testnet wallet, open `data.friendbot_url` in a browser or run:
+
+```bash
+curl "https://friendbot.stellar.org?addr=GBFSOIY52ZUWZGSCYWRXBBKJKZB5XFXO5X7J7AEACPFN7O3NBSHW3M5"
+```
+
+Friendbot will deposit 10,000 test XLM and activate the account in a few seconds.
+
+## Mainnet example
+
+**Response:**
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "address": "GBFSOIY52ZUWZGSCYWRXBBKJKZB5XFXO5X7J7AEACPFN7O3NBSHW3M5",
+    "network": "mainnet",
+    "friendbot_url": null
+  },
+  "message": "Mainnet wallet GBFSOIY52ZUWZGSCYWRXBBKJKZB5XFXO5X7J7AEACPFN7O3NBSHW3M5 — fund via an exchange or existing Stellar account."
+}
+```
+
+To fund a mainnet wallet:
+
+1. Copy `data.address` from the response.
+2. Purchase XLM on a crypto exchange (e.g. Coinbase, Kraken, Binance) and withdraw to that address, or send from an existing Stellar wallet.
+3. Ensure you send at least **1 XLM** to meet Stellar's minimum account activation (base reserve) requirement.
+
+<Note>
+  After funding with XLM, you need to **open a USDC trustline** before the wallet can hold or receive USDC. Visit the **Connect** page in your [Nebula dashboard](https://nebulaonchain.xyz) to open the trustline with one click. This step requires a small XLM balance for the Stellar account reserve.
+</Note>
+
+<Tip>
+  On testnet you can call Friendbot as many times as you like. Each call tops up the balance — useful when running automated tests that drain funds quickly.
+</Tip>

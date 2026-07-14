@@ -1,0 +1,170 @@
+---
+title: "Troubleshoot Common Nebula Issues"
+sidebarTitle: "Troubleshooting"
+description: "Fix common problems with Nebula token setup, MCP connection, payment failures, policy rejections, and confirmation timeouts."
+---
+
+Most Nebula issues fall into one of four categories: connection problems during initial setup, payment rejections from your spending policy, confirmation workflow interruptions, and treasury or yield configuration. Work through the relevant section below. If you need to verify your connection is healthy at any point, call the `ping` tool — a successful response confirms the Hub is reachable and your token is valid.
+
+## Connection Issues
+
+<Accordion title='"NEBULA_TOKEN not set" error on startup'>
+  The MCP server checks for `NEBULA_TOKEN` at startup and exits immediately if it is missing.
+
+  **Fix:** Set the environment variable before launching the MCP server. For Claude Desktop, add it to your `mcpServers` config:
+
+  ```json
+  {
+    "mcpServers": {
+      "nebula": {
+        "command": "npx",
+        "args": ["-y", "@nebula/mcp"],
+        "env": {
+          "NEBULA_TOKEN": "nbl_live_…"
+        }
+      }
+    }
+  }
+  ```
+
+  Generate your token at [nebulaonchain.xyz/connect](https://nebulaonchain.xyz/connect). The token always starts with `nbl_live_`.
+
+  If you are running the server from a terminal, export the variable first:
+
+  ```bash
+  export NEBULA_TOKEN=nbl_live_…
+  npx @nebula/mcp
+  ```
+</Accordion>
+
+<Accordion title='"Refusing to start: NEBULA_TOKEN looks like a Stellar secret key"'>
+  The MCP server detected that the value you provided as `NEBULA_TOKEN` starts with `S` and is longer than 50 characters — the signature of a Stellar secret key. The server refuses to start to protect you from accidentally exposing your private key.
+
+  **Fix:** Replace the value with your `nbl_live_…` token from the [Connect page](https://nebulaonchain.xyz/connect). **Never** put a Stellar secret key (`S…`) in `NEBULA_TOKEN` or anywhere in your MCP configuration. Your secret key should never leave Nebula's secure infrastructure.
+
+  If you are unsure which value to use, visit the Connect page, find or create your agent entry, and copy the token shown there.
+</Accordion>
+
+<Accordion title="MCP tools not showing in Claude Desktop or Cursor">
+  If the Nebula tools (like `ping`, `get_balance`, `transfer`) do not appear in your AI client's tool list, the MCP server either failed to start or the configuration was not picked up.
+
+  **Steps to fix:**
+
+  1. **Restart your AI client** after any configuration change. Claude Desktop and Cursor only read `mcpServers` config at launch.
+  2. **Validate your JSON.** Open your config file (`claude_desktop_config.json` or equivalent) and run it through a JSON validator. A single misplaced comma or missing quote will silently prevent the config from loading.
+  3. **Check for startup errors.** Run the MCP server directly in a terminal with your token set to see if it prints any errors:
+     ```bash
+     NEBULA_TOKEN=nbl_live_… npx @nebula/mcp
+     ```
+  4. **Verify the package can be fetched.** If `npx` cannot download `@nebula/mcp`, check your internet connection or npm registry access.
+  5. **Check `NEBULA_HUB`.** If you set a custom `NEBULA_HUB`, ensure the URL is reachable and does not have a trailing slash.
+</Accordion>
+
+<Accordion title='"Hub error: HTTP 401" when calling a tool'>
+  A 401 response means the Hub rejected your token as invalid or expired.
+
+  **Fix:**
+
+  1. Go to [nebulaonchain.xyz/connect](https://nebulaonchain.xyz/connect) and verify your agent entry still exists.
+  2. Regenerate the token for your agent if needed.
+  3. Update `NEBULA_TOKEN` in your configuration with the new token value.
+  4. Restart your AI client or MCP process.
+
+  If you are using an OAuth access token (from the DCR flow), it may have expired. Access tokens expire after **30 days**. Re-run the authorization flow to obtain a fresh token.
+</Accordion>
+
+## Payment Failures
+
+<Accordion title='"exceeds_per_tx_cap" — transfer rejected'>
+  The amount you tried to transfer exceeds the `max_per_call` limit in your spending policy.
+
+  **Fix:** Go to the **Policy** section of the [Nebula dashboard](https://nebulaonchain.xyz) and raise `max_per_call` to a value that covers your intended transaction size.
+
+  Before changing the limit, consider whether the transaction amount is expected or if your agent is doing something unintended. You can review recent activity with the `spending_report` tool.
+
+  <Note>
+    `max_per_call` is denominated in USDC. If you are sending XLM, Nebula converts the amount at the live rate before checking the cap.
+  </Note>
+</Accordion>
+
+<Accordion title='"exceeds_daily_cap" — transfer rejected'>
+  Your agent has already spent up to its `max_per_day` limit today. All further transfers are blocked until the daily counter resets.
+
+  **Fix options:**
+
+  - **Wait for the daily reset.** The counter resets each calendar day.
+  - **Raise `max_per_day`** in the Policy dashboard if your agent legitimately needs more budget.
+  - **Review recent spending** with `spending_report` to understand what consumed the budget. If you see unexpected activity, consider pausing your agent while you investigate.
+</Accordion>
+
+<Accordion title='"destination_denylisted" — transfer rejected'>
+  The destination address is on your `denylist`. This is always rejected, regardless of amount or whitelist status.
+
+  **Fix:** If the address was added by mistake, go to the **Policy** section of the dashboard and remove it from the denylist. If the address was intentionally blocked, the transfer should not proceed.
+</Accordion>
+
+<Accordion title='"policy_paused" — all transfers rejected'>
+  Your agent's spending policy has the `paused` flag enabled. No transactions will go through while this is active.
+
+  **Fix:** Go to the **Policy** section of the [Nebula dashboard](https://nebulaonchain.xyz) and toggle Pause off. Changes take effect immediately on the next tool call.
+
+  Your agent can also detect this state by calling `get_policy_status` and checking `paused: true` in the response.
+</Accordion>
+
+## Confirmation Issues
+
+<Accordion title='`await_confirmation` keeps returning "still pending"'>
+  This is expected behavior, not an error. The Hub waits up to 25 seconds per `await_confirmation` call before returning a "still pending" result — this prevents serverless timeouts while a human reviews the approval.
+
+  **Fix:** Your agent should treat "still pending" as a signal to call `await_confirmation` again with the same `confirmation_id`. Continue polling until the response is `approved`, `rejected`, or `expired`. A simple retry loop with a short delay works well.
+
+  Make sure your agent is not discarding the `confirmation_id` between calls — it must be the same ID returned in the original `confirmation_required` response.
+</Accordion>
+
+<Accordion title="A confirmation expired before anyone approved it">
+  If no human approves or rejects a pending confirmation before it expires, the confirmation is cancelled. The associated transaction will not be submitted to Stellar.
+
+  **Fix:** Your agent should handle the `expired` status and either:
+  - Re-initiate the transfer (this creates a new confirmation request for the human to review), or
+  - Notify the user that the operation was cancelled and ask whether to try again.
+
+  To avoid expirations, ensure your team is monitoring the [Approvals tab](https://nebulaonchain.xyz) of the dashboard when your agent is active, particularly during initial deployments.
+</Accordion>
+
+<Accordion title="I do not know the URL to approve a pending confirmation">
+  All pending confirmations are visible in the **Approvals** tab of the [Nebula dashboard](https://nebulaonchain.xyz). You do not need to construct a URL manually — just open the dashboard and the pending approval will be listed there with approve and reject buttons.
+
+  Alternatively, the `confirmation_required` response your agent receives includes a `confirmation_url` field with a direct link to the approval page.
+</Accordion>
+
+## Treasury and Yield Issues
+
+<Accordion title="Agent has low liquid balance but high Blend balance">
+  Nebula's treasury management automatically moves surplus USDC into Blend lending pools to earn yield. If your agent's liquid balance is low but funds are sitting in Blend, the treasury auto-rebalances when your agent is active — the next tool call that checks balance or initiates a payment will trigger a withdrawal from Blend if needed.
+
+  If you want to rebalance immediately without waiting for agent activity, use the **Optimize Treasury** option in the dashboard to trigger a manual rebalance.
+
+  If your agent frequently runs into low liquid balances, consider adjusting your treasury threshold so more USDC is kept liquid at all times.
+</Accordion>
+
+<Accordion title='`blend_check_rates` returns an error'>
+  Blend lending pools can occasionally be temporarily unavailable due to network conditions or Soroban RPC degradation on Stellar.
+
+  **Fix:** Wait a few minutes and retry. These interruptions are typically brief. If the error persists for more than 15–20 minutes, check the [Stellar status page](https://status.stellar.org) for network incidents.
+
+  Your agent's ability to transfer, pay, and call other tools is not affected by Blend availability — only yield operations are impacted.
+</Accordion>
+
+## General Diagnostic Tips
+
+<Tip>
+  Always call `ping` first when diagnosing a problem. A successful ping confirms your token is valid, the Hub is reachable, and the MCP transport is working correctly. If `ping` fails, the issue is in the connection layer, not in your policy or payment logic.
+</Tip>
+
+<Tip>
+  Call `get_policy_status` before large or sensitive operations. It shows your current caps, today's spend totals, whitelist, denylist, and whether you are paused — giving you a full picture of what your agent is allowed to do before it tries.
+</Tip>
+
+<Tip>
+  Use `spending_report` to review recent transaction history. If your agent hit a daily cap unexpectedly, this tool shows you exactly what was spent and when, helping you understand whether the activity was intentional.
+</Tip>

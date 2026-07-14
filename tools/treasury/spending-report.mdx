@@ -1,0 +1,123 @@
+---
+title: "spending_report — View Recent Wallet Activity"
+sidebarTitle: "spending_report"
+description: "Lists all confirmed wallet activity in the last 24 hours including transfers, x402 payments, MPP sessions, and treasury operations."
+---
+
+`spending_report` returns a chronological activity log of every confirmed transaction your agent's wallet has made in the past 24 hours. Entries span all activity types: direct USDC transfers, HTTP x402 micropayments, Money Streaming Protocol (MPP) session charges, and treasury rebalance operations. The response also includes per-category and overall daily totals.
+
+This tool reports **what has already happened** — it is an activity log, not a policy view. To see current spending caps and limits, use [`get_policy_status`](/tools/policy/get-policy-status) instead.
+
+## Parameters
+
+This tool takes no parameters.
+
+## Response
+
+### `activity` array
+
+Each entry in the `activity` array represents one confirmed wallet event.
+
+<ResponseField name="activity[].type" type="string">
+  Category of the transaction. One of: `transfer`, `x402`, `mpp`, `treasury`.
+</ResponseField>
+
+<ResponseField name="activity[].amount_usdc" type="number">
+  Amount spent or moved, denominated in USDC.
+</ResponseField>
+
+<ResponseField name="activity[].destination" type="string">
+  Stellar address or service identifier that received the funds. For treasury entries this may be a pool identifier.
+</ResponseField>
+
+<ResponseField name="activity[].timestamp" type="string">
+  ISO 8601 timestamp when the transaction was confirmed on-chain.
+</ResponseField>
+
+<ResponseField name="activity[].tx_hash" type="string">
+  Stellar transaction hash. Use this to look up full details on any Stellar explorer.
+</ResponseField>
+
+### `totals` object
+
+<ResponseField name="totals.transfer_usdc" type="number">
+  Sum of all `transfer` type activity in the window.
+</ResponseField>
+
+<ResponseField name="totals.x402_usdc" type="number">
+  Sum of all `x402` micropayments in the window.
+</ResponseField>
+
+<ResponseField name="totals.mpp_usdc" type="number">
+  Sum of all `mpp` streaming session charges in the window.
+</ResponseField>
+
+<ResponseField name="totals.treasury_usdc" type="number">
+  Sum of all `treasury` rebalance flows in the window.
+</ResponseField>
+
+<ResponseField name="totals.all_usdc" type="number">
+  Grand total of all activity across every category.
+</ResponseField>
+
+## When to use
+
+- **Audit agent spending** — verify what your agent has actually paid for in the last 24 hours.
+- **Debug unexpected charges** — cross-reference `tx_hash` values against on-chain explorer data.
+- **Reconciliation** — generate daily cost breakdowns by activity type using the `totals` fields.
+
+## Example
+
+**Tool call**
+
+```json spending_report request
+{
+  "tool": "spending_report"
+}
+```
+
+**Response**
+
+```json spending_report response
+{
+  "status": "ok",
+  "window": "24h",
+  "activity": [
+    {
+      "type": "x402",
+      "amount_usdc": 0.01,
+      "destination": "api.example.com",
+      "timestamp": "2025-01-15T09:14:03Z",
+      "tx_hash": "a3f1e2b4c5d6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2"
+    },
+    {
+      "type": "transfer",
+      "amount_usdc": 25.00,
+      "destination": "GBXYZ1234567890ABCDEF1234567890ABCDEF1234567890ABCDE",
+      "timestamp": "2025-01-15T10:02:47Z",
+      "tx_hash": "b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5"
+    },
+    {
+      "type": "mpp",
+      "amount_usdc": 0.50,
+      "destination": "stream.videoservice.io",
+      "timestamp": "2025-01-15T11:30:00Z",
+      "tx_hash": "c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"
+    },
+    {
+      "type": "treasury",
+      "amount_usdc": 100.00,
+      "destination": "CBLND1POOL7XYZABCDEF1234567890ABCDEF1234567890ABCDE",
+      "timestamp": "2025-01-15T08:23:11Z",
+      "tx_hash": "d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7"
+    }
+  ],
+  "totals": {
+    "transfer_usdc": 25.00,
+    "x402_usdc": 0.01,
+    "mpp_usdc": 0.50,
+    "treasury_usdc": 100.00,
+    "all_usdc": 125.51
+  }
+}
+```

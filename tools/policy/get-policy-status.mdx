@@ -1,0 +1,89 @@
+---
+title: "get_policy_status — Read Your Agent's Spending Policy"
+sidebarTitle: "get_policy_status"
+description: "Returns the current spending policy including USDC caps, micro-threshold, pause state, whitelist, and denylist."
+---
+
+`get_policy_status` returns a complete snapshot of the spending policy currently governing your agent's wallet. This includes the micro-payment auto-approve threshold, per-transaction and daily USDC caps, how much has already been spent today, the full whitelist and denylist, and whether all spending is currently paused.
+
+Agents can read this policy at any time to understand what transactions will auto-approve, which destinations require human confirmation, and what limits apply. Agents cannot modify the policy — to change limits or lists, use the **Policy** section of the Nebula dashboard.
+
+## Parameters
+
+This tool takes no parameters.
+
+## Response
+
+<ResponseField name="paused" type="boolean">
+  When `true`, all outgoing spend is blocked regardless of amount or destination. Transactions return `policy_paused`. Only a dashboard action can unpause.
+</ResponseField>
+
+<ResponseField name="micro_threshold" type="number">
+  Transactions at or below this USDC amount are automatically approved without human confirmation (unless the destination is on the denylist). Useful for sub-cent micropayments such as x402 API calls.
+</ResponseField>
+
+<ResponseField name="per_tx_cap" type="number">
+  Maximum USDC allowed in a single transaction. Transactions above this limit are rejected outright — even with human confirmation they cannot proceed.
+</ResponseField>
+
+<ResponseField name="daily_cap" type="number">
+  Maximum USDC the agent may spend across all transactions in a rolling 24-hour window. Once reached, further spend is rejected until the window resets.
+</ResponseField>
+
+<ResponseField name="daily_spent_usdc" type="number">
+  Amount already spent in the current 24-hour window. Compare to `daily_cap` to determine remaining daily budget.
+</ResponseField>
+
+<ResponseField name="whitelist" type="array">
+  Array of Stellar addresses that are treated as trusted destinations. Transfers to whitelisted addresses auto-approve as long as the amount does not exceed `per_tx_cap`.
+</ResponseField>
+
+<ResponseField name="denylist" type="array">
+  Array of Stellar addresses that are permanently blocked. Any transfer to a denylisted address is rejected immediately, regardless of amount or whitelist status.
+</ResponseField>
+
+## Confirmation rules at a glance
+
+The policy engine evaluates each outgoing transaction in this order:
+
+1. **Paused** → reject
+2. **Destination on denylist** → reject
+3. **Amount > `per_tx_cap`** → reject
+4. **Daily total would exceed `daily_cap`** → reject
+5. **Amount ≤ `micro_threshold`** → auto-approve
+6. **Destination on whitelist** → auto-approve
+7. **New destination** → `confirmation_required` (human must approve via dashboard)
+
+<Note>
+  Agents can **read** this policy but cannot mutate it. To update caps, pause spending, or edit the whitelist and denylist, open the **Policy** section in your Nebula dashboard.
+</Note>
+
+## Example
+
+**Tool call**
+
+```json get_policy_status request
+{
+  "tool": "get_policy_status"
+}
+```
+
+**Response**
+
+```json get_policy_status response
+{
+  "status": "ok",
+  "paused": false,
+  "micro_threshold": 0.10,
+  "per_tx_cap": 50.00,
+  "daily_cap": 200.00,
+  "daily_spent_usdc": 25.51,
+  "whitelist": [
+    "GBXYZ1234567890ABCDEF1234567890ABCDEF1234567890ABCDE",
+    "GABC9876543210FEDCBA9876543210FEDCBA9876543210FEDCB"
+  ],
+  "denylist": [
+    "GDENY000000000000000000000000000000000000000000000A"
+  ]
+}
+```

@@ -1,47 +1,96 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "Get Started with Nebula in Under 5 Minutes"
+sidebarTitle: "Quickstart"
+description: "Learn how to connect Nebula to Claude Desktop or Cursor and make your first on-chain payment in under five minutes."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
+This guide takes you from zero to a working Nebula connection in Claude Desktop or Cursor. By the end you will have an agent that can check its Stellar balance, get its wallet address, and make payments — all within the spending policy you define.
 
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
+<Warning>
+  Never put a Stellar secret key (`S…`) in your MCP configuration. Nebula is designed so that your agent only needs a `NEBULA_TOKEN`. Private keys stay inside the Nebula Hub at all times.
+</Warning>
 
-## Prerequisites
-
-Before you begin, you must have:
-
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+## Steps
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
-
-    ```bash
-    npm install your-package
-    ```
+  <Step title="Sign in to Nebula">
+    Go to [nebulaonchain.xyz](https://nebulaonchain.xyz) and sign in. The Hub will provision a Stellar wallet for you automatically on your first login — no extra setup required.
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
 
-    ```bash
-    your-cli init
-    ```
+  <Step title="Create an agent and copy your token">
+    In the dashboard, open the **Connect** page and click **New Agent**. Give your agent a name (for example, `claude-desktop`), then click **Create**. 
+
+    Copy the `nbl_live_…` token that appears. This is the only credential your agent will ever need. Store it somewhere safe — you can regenerate it from the dashboard at any time, but you cannot view it again after leaving this screen.
   </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
 
-    ```bash
-    your-cli start
+  <Step title="Add Nebula to Claude Desktop">
+    Open your Claude Desktop configuration file. On macOS it is at `~/Library/Application Support/Claude/claude_desktop_config.json`; on Windows it is at `%APPDATA%\Claude\claude_desktop_config.json`.
+
+    Add the `nebula` entry to the `mcpServers` object:
+
+    ```json claude_desktop_config.json
+    {
+      "mcpServers": {
+        "nebula": {
+          "command": "npx",
+          "args": ["-y", "@nebula/mcp"],
+          "env": {
+            "NEBULA_TOKEN": "nbl_live_…"
+          }
+        }
+      }
+    }
     ```
+
+    Replace `nbl_live_…` with your actual token. Save the file and **restart Claude Desktop**.
+  </Step>
+
+  <Step title="Add Nebula to Cursor (optional)">
+    If you use Cursor instead of (or alongside) Claude Desktop, open **Cursor Settings → MCP** and add the same configuration:
+
+    ```json Cursor MCP config
+    {
+      "mcpServers": {
+        "nebula": {
+          "command": "npx",
+          "args": ["-y", "@nebula/mcp"],
+          "env": {
+            "NEBULA_TOKEN": "nbl_live_…"
+          }
+        }
+      }
+    }
+    ```
+
+    Cursor picks up MCP server changes without a full restart — toggling the server off and on in settings is enough.
+  </Step>
+
+  <Step title="Verify the connection">
+    In Claude Desktop (or Cursor), start a new conversation and ask:
+
+    > "Can you call the Nebula ping tool and then get my wallet address?"
+
+    You should see a response confirming Nebula is alive, followed by your Stellar public address (starting with `G`). If you see an error instead, double-check that the token in your config matches the one from the Connect page.
+
+    <Tip>
+      On a testnet wallet you can also ask your agent to call `request_funding` to get your Friendbot URL and top up the wallet with test XLM instantly.
+    </Tip>
   </Step>
 </Steps>
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+## What to do next
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
-</Tip>
+<CardGroup cols={2}>
+  <Card title="Understand the architecture" icon="diagram-project" href="/concepts/how-it-works">
+    Learn how the MCP package, Hub, and Stellar work together to process every tool call safely.
+  </Card>
+  <Card title="Configure spending policy" icon="shield-check" href="/concepts/spending-policy">
+    Set per-transaction caps, daily limits, and address whitelists so your agent spends only what you intend.
+  </Card>
+  <Card title="Connect other clients" icon="plug" href="/connect-agent">
+    Full connection guide for Claude Code, custom frameworks, and the Remote MCP (Streamable HTTP) endpoint.
+  </Card>
+  <Card title="Wallet custody explained" icon="lock" href="/concepts/wallet-custody">
+    Understand how Privy keeps your private key safe and what your agent can and cannot do with its token.
+  </Card>
+</CardGroup>

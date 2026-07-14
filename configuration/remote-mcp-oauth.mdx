@@ -1,0 +1,190 @@
+---
+title: "Connect to Nebula via Remote MCP and OAuth"
+sidebarTitle: "Remote MCP & OAuth"
+description: "Use Nebula's Streamable HTTP MCP endpoint or OAuth Dynamic Client Registration to connect hosted agents without installing the stdio package."
+---
+
+Nebula supports two distinct ways for an agent to connect to the Hub and call tools. The first is the **stdio package** — a local process that runs on the same machine as your AI client. The second is the **remote MCP endpoint** — a Streamable HTTP interface hosted at `nebulaonchain.xyz` that any HTTP client can call directly, making it ideal for cloud-hosted agents and SaaS integrations. Both modes expose exactly the same set of Nebula tools; the difference is only in how the connection is established and authenticated.
+
+## Connection Modes at a Glance
+
+<Tabs>
+  <Tab title="stdio (Local)">
+    The `@nebula/mcp` package runs as a local stdio process. Your AI client (Claude Desktop, Cursor, Claude Code) spawns it directly and communicates over standard input/output. This is the simplest setup for local development and desktop AI clients.
+
+    **Best for:** Local agents, Claude Desktop, Cursor, Claude Code, any MCP client that supports stdio servers.
+
+    ```json
+    {
+      "mcpServers": {
+        "nebula": {
+          "command": "npx",
+          "args": ["-y", "@nebula/mcp"],
+          "env": {
+            "NEBULA_TOKEN": "nbl_live_…"
+          }
+        }
+      }
+    }
+    ```
+
+    The `NEBULA_TOKEN` environment variable is required. `NEBULA_HUB` is optional and defaults to `https://nebulaonchain.xyz`.
+  </Tab>
+  <Tab title="Remote MCP (HTTP)">
+    The Hub exposes a Streamable HTTP MCP endpoint. Your agent sends tool calls as HTTP POST requests with a Bearer token. No package installation or local process required.
+
+    **Best for:** Cloud-hosted agents, serverless functions, SaaS platforms, custom HTTP clients, any environment where running a local process is not practical.
+
+    ```bash
+    curl -X POST https://nebulaonchain.xyz/mcp \
+      -H "Authorization: Bearer nbl_live_…" \
+      -H "Content-Type: application/json" \
+      -d '{"method": "tools/call", "params": {"name": "ping", "arguments": {}}}'
+    ```
+  </Tab>
+</Tabs>
+
+## Remote MCP with a Bearer Token
+
+The simplest way to use the remote endpoint is with your `nbl_live_…` token as a Bearer credential. You get this token from the [Connect page](https://nebulaonchain.xyz/connect) of the Nebula dashboard.
+
+**Endpoint:** `POST https://nebulaonchain.xyz/mcp`
+
+**Required header:** `Authorization: Bearer nbl_live_…`
+
+Here is a complete example using `fetch` in JavaScript:
+
+```javascript
+async function callNebulaTool(toolName, args, token) {
+  const response = await fetch("https://nebulaonchain.xyz/mcp", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/call",
+      params: {
+        name: toolName,
+        arguments: args,
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Hub error: HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// Example: ping the Hub
+const result = await callNebulaTool("ping", {}, "nbl_live_…");
+console.log(result);
+```
+
+And the same call with `curl`:
+
+```bash
+curl -X POST https://nebulaonchain.xyz/mcp \
+  -H "Authorization: Bearer nbl_live_…" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "name": "ping",
+      "arguments": {}
+    }
+  }'
+```
+
+<Note>
+  The remote MCP endpoint speaks the same MCP JSON-RPC protocol as the stdio transport. Any library or framework that supports Streamable HTTP MCP will work without modification.
+</Note>
+
+## OAuth Dynamic Client Registration (DCR)
+
+For **multi-user SaaS platforms** where each of your customers needs their own Nebula connection, Nebula supports the OAuth 2.0 Dynamic Client Registration flow. This lets your platform register itself once and then redirect individual users through a standard OAuth authorization screen — no manual token generation per user.
+
+The flow has four steps:
+
+<Steps>
+  <Step title="Discover server metadata">
+    Fetch the OAuth server's metadata document to get the endpoints you will need:
+
+    ```bash
+    GET https://nebulaonchain.xyz/.well-known/oauth-authorization-server
+    ```
+
+    This returns a JSON document with `registration_endpoint`, `authorization_endpoint`, and `token_endpoint` values.
+  </Step>
+
+  <Step title="Register your client (Dynamic Client Registration)">
+    Register your application as an OAuth client. You only need to do this once per deployment:
+
+    ```bash
+    POST https://nebulaonchain.xyz/api/oauth/register
+    Content-Type: application/json
+
+    {
+      "client_name": "My Agent Platform",
+      "redirect_uris": ["https://yourapp.com/oauth/callback"],
+      "grant_types": ["authorization_code"],
+      "response_types": ["code"]
+    }
+    ```
+
+    The response contains your `client_id` and `client_secret`. Store these securely.
+  </Step>
+
+  <Step title="Redirect the user to authorize">
+    When a user wants to connect their Nebula account, redirect them to the authorization endpoint:
+
+    ```
+    GET https://nebulaonchain.xyz/authorize
+      ?client_id=YOUR_CLIENT_ID
+      &redirect_uri=https://yourapp.com/oauth/callback
+      &response_type=code
+      &state=RANDOM_STATE_VALUE
+    ```
+
+    The user logs in to Nebula and grants your application access. Nebula redirects back to your `redirect_uri` with a `code` parameter.
+  </Step>
+
+  <Step title="Exchange the code for an access token">
+    Exchange the authorization code for an access token:
+
+    ```bash
+    POST https://nebulaonchain.xyz/oauth/token
+    Content-Type: application/x-www-form-urlencoded
+
+    grant_type=authorization_code
+    &code=AUTHORIZATION_CODE
+    &redirect_uri=https://yourapp.com/oauth/callback
+    &client_id=YOUR_CLIENT_ID
+    &client_secret=YOUR_CLIENT_SECRET
+    ```
+
+    The response includes an `access_token` you can use as a Bearer token in the remote MCP endpoint. Access tokens expire in **30 days**.
+  </Step>
+</Steps>
+
+<Warning>
+  Access tokens expire after 30 days. Your platform should handle token expiry gracefully — catch `HTTP 401` responses and prompt the user to re-authorize.
+</Warning>
+
+## Bearer Token vs OAuth: Which Should You Use?
+
+| Scenario | Recommended approach |
+|---|---|
+| Single agent for your own use | Bearer token (`nbl_live_…`) from the Connect page |
+| Local AI client (Claude Desktop, Cursor) | stdio package with `NEBULA_TOKEN` env var |
+| Cloud-hosted agent you control | Bearer token in server environment variable |
+| SaaS platform with multiple end users | OAuth DCR flow — one token per user |
+| CI/automation pipeline | Bearer token in secrets manager |
+
+The Bearer token approach is simpler and covers the vast majority of cases. Use OAuth only when you are building a platform that needs to act on behalf of multiple distinct Nebula accounts.

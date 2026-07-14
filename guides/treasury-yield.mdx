@@ -1,0 +1,224 @@
+---
+title: "Earn Automated Yield on Idle Agent Funds"
+sidebarTitle: "Treasury & Yield"
+description: "Nebula automatically routes idle USDC and XLM into Blend DeFi pools so your agent earns yield between payments, then recalls funds instantly when needed."
+---
+
+Your agent's wallet doesn't have to sit idle between payments. Nebula's treasury system automatically moves funds that exceed a configurable liquidity threshold into Blend DeFi pools on Stellar, where they earn supply APY around the clock. When your agent needs to make a payment, Nebula recalls the exact amount from the pool before submitting the transaction — so yield generation is entirely transparent to your agent's payment tools.
+
+## How automated treasury works
+
+Nebula monitors your wallet balance against a **liquidity threshold** — the minimum amount of liquid USDC kept instantly available. Anything above that threshold is eligible to be deposited into a [Blend](https://blend.capital/) supply pool on Stellar, where it earns interest from borrowers.
+
+Rebalancing is **activity-triggered**: whenever your wallet receives funds or makes a payment, the Hub checks whether the liquid balance is above or below the threshold and adjusts the Blend position accordingly. This means:
+
+- **Idle periods**: excess funds flow into Blend and accumulate yield.
+- **Payment time**: Nebula withdraws the needed amount from Blend, then executes the payment — your agent calls `x402_fetch` or `transfer` normally and never needs to manage the recall manually.
+
+<Note>
+  Blend pools operate on **Stellar mainnet**. On testnet, treasury rebalancing is simulated but Blend positions may not be funded with real yield. Use testnet to test the tool interfaces; switch to mainnet to earn real APY.
+</Note>
+
+## The liquidity threshold
+
+The liquidity threshold is the floor below which Nebula will not deposit funds into Blend. It is expressed in USDC and set by you (or your dashboard user) via `set_liquidity_threshold`.
+
+For example: if your threshold is `10.00` USDC and your wallet holds `35.00` USDC, up to `25.00` USDC can be deposited into Blend. If the wallet balance drops to `8.00` USDC (below threshold), Nebula will withdraw from Blend to top back up to the threshold on the next activity event.
+
+A well-chosen threshold keeps enough liquid buffer for your agent's typical burst payment load while maximising time-in-pool for idle funds.
+
+## Tools available to your agent
+
+Your agent can read treasury state but cannot modify the threshold or trigger manual rebalances — those controls are reserved for dashboard (human) users.
+
+### `blend_check_rates`
+
+Returns the current supply APY for the Blend pools configured for your wallet. Read-only; call this whenever you want to know what your idle funds are earning.
+
+**Example:**
+
+```json
+{
+  "tool": "blend_check_rates",
+  "arguments": {}
+}
+```
+
+**Response:**
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "pools": [
+      {
+        "pool_id": "CBLENDPOOL1XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        "asset": "USDC",
+        "supply_apy_pct": 7.42
+      },
+      {
+        "pool_id": "CBLENDPOOL2XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        "asset": "XLM",
+        "supply_apy_pct": 4.18
+      }
+    ],
+    "fetched_at": "2024-06-10T14:00:00Z"
+  }
+}
+```
+
+---
+
+### `get_treasury_status`
+
+Returns a full snapshot of your treasury: liquid balance, amount currently deposited in Blend, current APY, the configured threshold, and when the last rebalance occurred. Call this before large payments to confirm sufficient liquidity is available.
+
+**Example:**
+
+```json
+{
+  "tool": "get_treasury_status",
+  "arguments": {}
+}
+```
+
+**Response:**
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "liquid_usdc": 12.50,
+    "blend_deposited_usdc": 87.20,
+    "total_usdc": 99.70,
+    "current_apy_pct": 7.42,
+    "liquidity_threshold_usdc": 10.00,
+    "last_rebalance_at": "2024-06-10T13:47:05Z",
+    "blend_pool_id": "CBLENDPOOL1XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+  }
+}
+```
+
+Key fields to watch:
+
+| Field | What it tells you |
+|---|---|
+| `liquid_usdc` | Instantly available for payments right now |
+| `blend_deposited_usdc` | Earning yield; recalled automatically when needed |
+| `current_apy_pct` | Your current annual percentage yield |
+| `liquidity_threshold_usdc` | The floor Nebula maintains liquid |
+| `last_rebalance_at` | When the pool position was last adjusted |
+
+---
+
+### `spending_report`
+
+Returns a breakdown of wallet activity over the last 24 hours — transfers, x402 payments, MPP session settlements, and treasury movements — with USDC amounts and running totals. Useful for understanding how treasury funds flowed alongside your agent's spending.
+
+**Example:**
+
+```json
+{
+  "tool": "spending_report",
+  "arguments": {}
+}
+```
+
+**Response excerpt:**
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "period": "last_24h",
+    "total_spent_usdc": 4.21,
+    "entries": [
+      { "type": "x402", "amount_usdc": 0.03, "url": "https://...", "at": "2024-06-10T09:12:00Z" },
+      { "type": "mpp_settle", "amount_usdc": 0.84, "session_id": "mpp_sess_01H...", "at": "2024-06-10T11:30:00Z" },
+      { "type": "blend_withdraw", "amount_usdc": 5.00, "reason": "payment_prefetch", "at": "2024-06-10T11:29:58Z" },
+      { "type": "blend_deposit", "amount_usdc": 4.16, "reason": "post_payment_rebalance", "at": "2024-06-10T11:30:02Z" }
+    ]
+  }
+}
+```
+
+## Dashboard-only controls
+
+The following tools exist in Nebula but are **not available to MCP agent tokens**. They can only be called by authenticated dashboard users via the [Nebula Hub](https://nebulaonchain.xyz):
+
+<CardGroup cols={2}>
+  <Card title="set_liquidity_threshold" icon="sliders">
+    Sets the minimum liquid USDC floor. The Hub converts this value to XLM for Blend position management. Change this when your agent's payment patterns shift.
+  </Card>
+  <Card title="blend_deposit / blend_withdraw" icon="arrows-up-down">
+    Manual moves into or out of Blend pools. Use these from the dashboard when you want immediate control over the pool position outside of automated rebalancing.
+  </Card>
+  <Card title="optimize_treasury" icon="bolt">
+    Triggers an immediate rebalance rather than waiting for the next activity event. Useful after a large deposit or if you want to maximise yield before a quiet period.
+  </Card>
+  <Card title="deploy_policy / set_policy_limits" icon="shield">
+    Policy controls are also dashboard-only. Adjust caps here when you change your agent's workload profile.
+  </Card>
+</CardGroup>
+
+<Warning>
+  If your agent attempts to call `set_liquidity_threshold`, `blend_deposit`, `blend_withdraw`, or `optimize_treasury`, the Hub will return an error. These operations require dashboard authentication and are intentionally restricted from autonomous agents.
+</Warning>
+
+## Example: agent checking treasury before a large payment
+
+Before committing to a high-value x402 fetch or opening a large MPP session, your agent should verify that enough liquid funds are available. If `liquid_usdc` is below the required amount, Nebula will recall from Blend automatically — but the check lets your agent handle low-fund situations gracefully.
+
+```text
+User: Fetch this $15 premium research report.
+
+Agent: That's above my usual spend. Let me check treasury before proceeding.
+
+[Tool call: get_treasury_status]
+{
+  "tool": "get_treasury_status",
+  "arguments": {}
+}
+
+[Result]
+{
+  "liquid_usdc": 12.50,
+  "blend_deposited_usdc": 87.20,
+  "total_usdc": 99.70,
+  "liquidity_threshold_usdc": 10.00
+}
+
+Agent: I have $12.50 liquid and $87.20 in Blend — total $99.70. The $15 payment
+       will trigger a Blend recall for the shortfall ($2.50). Proceeding.
+
+[Tool call: x402_fetch]
+{
+  "tool": "x402_fetch",
+  "arguments": {
+    "url": "https://research.example.com/reports/q2-2024-stellar",
+    "max_amount_usdc": 15.00
+  }
+}
+
+[Result: paid 15.00 USDC, report content returned]
+
+Agent: Report fetched successfully. Cost: $15.00 USDC.
+       (Nebula recalled $2.50 from Blend automatically.)
+```
+
+## Tips
+
+<CardGroup cols={2}>
+  <Card title="Check treasury before large payments" icon="magnifying-glass-dollar">
+    Call `get_treasury_status` before any payment above your liquidity threshold. The recall is automatic, but knowing the breakdown helps you reason about timing and costs.
+  </Card>
+  <Card title="Use blend_check_rates to monitor APY" icon="percent">
+    APY on Blend pools fluctuates with borrowing demand. A quick `blend_check_rates` call tells you whether it's worth keeping a larger idle balance in the pool.
+  </Card>
+  <Card title="spending_report reveals treasury moves" icon="list-check">
+    Treasury deposits and withdrawals appear in `spending_report` alongside regular payments. Look for `blend_deposit` and `blend_withdraw` entries to see the full picture.
+  </Card>
+  <Card title="Threshold tuning is a dashboard task" icon="gauge-high">
+    If your agent repeatedly hits liquidity recalls mid-task, ask the wallet owner to raise the threshold via the Nebula dashboard. More liquid buffer means fewer Blend round-trips.
+  </Card>
+</CardGroup>

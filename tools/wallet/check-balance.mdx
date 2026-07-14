@@ -1,0 +1,83 @@
+---
+title: "check_balance — View Your Agent's Wallet Balances"
+sidebarTitle: "check_balance"
+description: "Returns the current XLM and USDC balances for the agent's Nebula wallet on Stellar."
+---
+
+The `check_balance` tool returns the live balances held in the agent's Nebula wallet. It always reports the XLM (Lumen) balance, and includes the USDC balance when the wallet has an open USDC trustline. Call this tool any time the agent needs to decide whether it has enough funds to proceed, report its financial state, or confirm that a transfer or funding action landed correctly.
+
+## Parameters
+
+`check_balance` takes no parameters. Pass an empty object `{}` as the tool input.
+
+## Response
+
+<ResponseField name="status" type="string">
+  `"ok"` on success.
+</ResponseField>
+
+<ResponseField name="data.address" type="string">
+  The agent's Stellar public key (`G…`), confirming which wallet was queried.
+</ResponseField>
+
+<ResponseField name="data.network" type="string">
+  The Stellar network this wallet is on. Either `"testnet"` or `"mainnet"`.
+</ResponseField>
+
+<ResponseField name="data.balances.xlm" type="string">
+  The current XLM balance, expressed as a decimal string (e.g. `"99.8000000"`). Stellar records seven decimal places of precision.
+</ResponseField>
+
+<ResponseField name="data.balances.usdc" type="string | null">
+  The current USDC balance as a decimal string, or `null` if no USDC trustline is open on the account. USDC on Stellar is issued by Circle's Centre Consortium.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  A human-readable balance summary, ready to be surfaced directly in an agent response.
+</ResponseField>
+
+## Example
+
+**Call:**
+
+```json
+{}
+```
+
+**Response (USDC trustline open):**
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "address": "GBFSOIY52ZUWZGSCYWRXBBKJKZB5XFXO5X7J7AEACPFN7O3NBSHW3M5",
+    "network": "mainnet",
+    "balances": {
+      "xlm": "245.3000000",
+      "usdc": "50.0000000"
+    }
+  },
+  "message": "XLM: 245.3000000 | USDC: 50.0000000"
+}
+```
+
+**Response (no USDC trustline):**
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "address": "GBFSOIY52ZUWZGSCYWRXBBKJKZB5XFXO5X7J7AEACPFN7O3NBSHW3M5",
+    "network": "mainnet",
+    "balances": {
+      "xlm": "245.3000000",
+      "usdc": null
+    }
+  },
+  "message": "XLM: 245.3000000 | USDC: not available (no trustline)"
+}
+```
+
+<Note>
+  USDC only appears in the balance response when the wallet has an active USDC trustline. To open a trustline and receive USDC, visit the **Connect** page in your Nebula dashboard. A small amount of XLM (currently 0.5 XLM) is reserved as a base reserve for each trustline on Stellar.
+</Note>
