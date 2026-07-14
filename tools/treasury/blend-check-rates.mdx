@@ -1,7 +1,7 @@
 ---
-title: "blend_check_rates — View Current Blend Pool APY"
+title: "blend_check_rates — View Current Blend Pool APY Rates"
 sidebarTitle: "blend_check_rates"
-description: "Returns the current supply APY for Blend DeFi pools where your agent's idle funds earn yield."
+description: "Returns the current supply APY for every configured Blend pool. Read-only — no funds move. Useful for yield monitoring and pre-payment liquidity checks."
 ---
 
 `blend_check_rates` gives your agent a read-only view of the current supply APY for each Blend pool that Nebula is configured to use. No funds are moved — it is a pure data query. Use it to understand what yield rate your idle treasury funds are earning, or to evaluate whether conditions are favorable before a large deposit.
@@ -30,7 +30,7 @@ An array of pool rate objects, one per configured Blend pool.
 
 - **Before a large payment** — confirm that funds currently in Blend are earning yield and note how long it may take for an auto-rebalance to make them liquid.
 - **Yield monitoring** — poll periodically to track how APY changes across pools.
-- **Choosing a pool** — if your dashboard policy allows multiple pool targets, compare rates before calling `optimize_treasury`.
+- **Choosing a pool** — if your dashboard is configured for multiple pool targets, compare rates here before triggering a rebalance from the Nebula dashboard.
 
 <Note>
   `blend_check_rates` is read-only. To actually deposit or withdraw from Blend, use `blend_deposit` or `blend_withdraw` from the Nebula dashboard — those tools are not available to agent tokens.

@@ -1,7 +1,7 @@
 ---
-title: "x402_fetch — Auto-Pay HTTP 402 Paywalls with USDC"
+title: "x402_fetch — Auto-Pay HTTP 402 Paywalls with USDC Now"
 sidebarTitle: "x402_fetch"
-description: "Fetch a URL and automatically pay any HTTP 402 paywall with Stellar USDC. Subject to your policy caps."
+description: "Fetch any URL and automatically pay HTTP 402 paywalls with Stellar USDC. Policy caps apply per transaction and per day — no manual negotiation needed."
 ---
 
 `x402_fetch` sends an HTTP GET request to any URL. If the server responds with an HTTP 402 Payment Required status, Nebula automatically pays the required amount in Stellar USDC and retries the request — all in a single tool call. You do not need to inspect the 402 challenge manually; the Hub payment stack handles negotiation and settlement transparently.

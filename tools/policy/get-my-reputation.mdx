@@ -1,7 +1,7 @@
 ---
-title: "get_my_reputation — View Your Agent's Reputation Score"
+title: "get_my_reputation — View Your Agent's On-Chain Reputation"
 sidebarTitle: "get_my_reputation"
-description: "Returns your agent's Stellar8004 reputation score, feedback count, and unique client count from on-chain data."
+description: "Returns your agent's live Stellar8004 reputation: avg score (0–100), total feedback count, and the number of unique counterparty clients on-chain."
 ---
 
 `get_my_reputation` reads live Stellar8004 reputation data for your agent's wallet. Scores are sourced from the Nebula explorer and fall back to direct on-chain lookups when the explorer is unavailable. The reputation system aggregates feedback from every counterparty that has interacted with your agent, producing a weighted average score, a total feedback count, and a count of distinct clients.

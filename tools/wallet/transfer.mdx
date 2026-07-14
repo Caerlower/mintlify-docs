@@ -1,7 +1,7 @@
 ---
-title: "transfer — Send XLM to a Stellar Address"
+title: "transfer — Send XLM from Your Nebula Agent Wallet"
 sidebarTitle: "transfer"
-description: "Transfer XLM from your agent's Nebula wallet to any Stellar address. Subject to policy caps and may require human confirmation."
+description: "Send XLM from your agent's Nebula wallet to any Stellar address. Evaluated against spending policy caps; may require human confirmation before broadcast."
 ---
 
 The `transfer` tool sends XLM from the agent's Nebula wallet to any valid Stellar public address. The Hub converts the XLM amount to a USD equivalent using the live XLM/USD market rate and counts it against the wallet's per-transaction and daily spending caps. Transfers that exceed a cap, or that send funds to a destination the agent has never used before, may be paused and routed to a human approver before the transaction is broadcast to Stellar.

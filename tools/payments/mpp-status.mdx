@@ -1,7 +1,7 @@
 ---
-title: "mpp_status — Check Active MPP Session Status"
+title: "mpp_status — View Your Active MPP Session Snapshot"
 sidebarTitle: "mpp_status"
-description: "View the current MPP session's budget, amount spent, remaining balance, and channel state."
+description: "Returns a live snapshot of your active MPP payment channel: budget, amount spent, remaining balance, recipient, and current lifecycle state."
 ---
 
 `mpp_status` returns a snapshot of your currently active MPP payment channel. Use it to check how much budget you have left before making more `mpp_fetch` calls, or to confirm that a session is open before starting a batch of requests.

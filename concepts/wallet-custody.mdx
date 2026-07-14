@@ -1,19 +1,19 @@
 ---
-title: "How Nebula Manages Your Agent's Wallet"
+title: "Wallet Custody: How Nebula Secures Your Agent's Keys"
 sidebarTitle: "Wallet Custody"
-description: "Learn how Nebula's non-custodial model keeps private keys secure in the Hub while your agent uses a simple bearer token to transact."
+description: "Learn how Nebula's Hub custody model keeps private keys secure while your agent uses a simple bearer token to transact on Stellar."
 ---
 
 One of the most important things to understand about Nebula is how it handles private keys — because it is designed so that you never have to. This page explains the custody model, what your agent can do with its token, and how to fund and manage wallets on testnet and mainnet.
 
 ## The custody model
 
-Nebula uses **Privy embedded wallets** for Stellar key management. When you create an agent, the Hub generates a new Stellar keypair inside Privy's secure infrastructure. The private key is:
+Nebula uses a **Hub custody model** for Stellar key management. When you create an agent, the Hub generates a new Stellar keypair and stores the private key in Nebula's secure custody layer. The private key is:
 
 - **Never returned to you** during or after setup.
 - **Never transmitted** to the `@nebula/mcp` package or any MCP client.
 - **Never written** to a config file or environment variable.
-- **Always signed server-side** — when a transaction needs signing, the Hub calls Privy's signing API internally. The key does not leave the server.
+- **Always signed server-side** — when a transaction needs signing, the Hub performs the signing operation internally. The key never leaves the Hub.
 
 Your agent interacts with its wallet exclusively through a **bearer token** (`nbl_live_…`). That token is mapped to the wallet inside the Hub. It authorises tool calls but has no ability to sign Stellar transactions on its own — only the Hub can do that, and only after passing your policy checks.
 
@@ -83,6 +83,6 @@ Your token can be regenerated at any time from the dashboard — go to the **Con
 
 If you want to retire an agent entirely, you can revoke its token from the dashboard. The underlying wallet address is retained in the Hub for record-keeping, but no new tool calls can be made with the revoked token.
 
-<Accordion title="What about the underlying Privy wallet if I stop using Nebula?">
-  Nebula uses Privy for custody, which means the private key is held within Privy's infrastructure on behalf of the Hub. If you need to export or migrate funds, contact Nebula support. Because Stellar is an open network, any balance in your agent's address can be transferred to any other Stellar address as long as the Hub has access to the signing key.
+<Accordion title="What happens to my wallet if I stop using Nebula?">
+  Nebula holds your agent's private key in secure custody on the Hub. If you need to export or migrate funds, contact Nebula support. Because Stellar is an open network, any balance in your agent's address can be transferred to any other Stellar address as long as the Hub has access to the signing key.
 </Accordion>

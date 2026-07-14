@@ -1,7 +1,7 @@
 ---
-title: "Connect Your Agent to Nebula"
+title: "Connect Your Agent: Claude Desktop, Cursor, and More"
 sidebarTitle: "Connect Agent"
-description: "Step-by-step guide to creating a Nebula agent token and connecting Claude Desktop, Cursor, Claude Code, or a custom MCP client."
+description: "Step-by-step guide to creating a Nebula agent token and connecting Claude Desktop, Cursor, Claude Code, or a custom MCP client to your Stellar wallet."
 ---
 
 Every agent that talks to Nebula needs a bearer token — a short string that starts with `nbl_live_…`. This token tells the Hub which wallet to use, which policy to enforce, and how to attribute transactions in your dashboard. This page explains how to create that token and how to wire it into whichever client you are using.
@@ -117,7 +117,7 @@ The agent will call `get_address` and return your Stellar public key (a `G…` s
 
 ## Security note: token vs secret key
 
-Your `NEBULA_TOKEN` is a **bearer token** — it authorises tool calls but has no ability to sign Stellar transactions directly. Signing is always done inside the Hub by Privy, after policy checks pass.
+Your `NEBULA_TOKEN` is a **bearer token** — it authorises tool calls but has no ability to sign Stellar transactions directly. Signing is always done inside the Hub, after policy checks pass.
 
 A Stellar secret key (which starts with `S`) would give anyone who holds it full, unconstrained control of the wallet. Nebula is designed so you never need to handle one.
 

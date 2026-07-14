@@ -1,7 +1,7 @@
 ---
-title: "mpp_close_session — Settle and Close MPP Channel"
+title: "mpp_close_session — Settle and Close an MPP Channel"
 sidebarTitle: "mpp_close_session"
-description: "Settle the active MPP payment channel on-chain and receive a refund of any unused budget."
+description: "Settle the active MPP payment channel on-chain. Pays the recipient the total committed amount and refunds any unused USDC budget to your wallet."
 ---
 
 `mpp_close_session` settles your active MPP payment channel on the Stellar network. It broadcasts the final channel state as a single on-chain transaction, pays the recipient the total amount committed across all `mpp_fetch` calls, and refunds any unused portion of your original budget back to your wallet.

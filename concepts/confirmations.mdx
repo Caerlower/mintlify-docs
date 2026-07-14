@@ -1,7 +1,7 @@
 ---
-title: "Human Confirmation Flow for High-Value Transfers"
+title: "Human Approvals: Confirming High-Value Agent Transfers"
 sidebarTitle: "Confirmations"
-description: "When a transfer requires human approval, Nebula pauses the agent and waits for you to approve or reject from the dashboard."
+description: "When a transfer requires human approval, Nebula pauses the agent and waits for you to approve or reject from the dashboard. Learn how the full flow works."
 ---
 
 Nebula is designed to let your agent operate autonomously for routine payments while still requiring your explicit approval before sending money to an unfamiliar destination. The confirmation flow is what makes that possible: when a transfer triggers the confirm outcome in the policy matrix, your agent pauses, the Hub queues an approval request, and your agent resumes only after you act on it. This page explains exactly how that flow works from both the agent's and the human's perspective.
@@ -51,7 +51,7 @@ Your agent should follow up a `confirmation_required` response by calling `await
 }
 ```
 
-If you approve or reject within 25 seconds, `await_confirmation` returns immediately with the result. If no action has been taken yet, it returns a `still_pending` response — and your agent should call it again. A well-behaved agent loops on `await_confirmation` until the confirmation is resolved or expired.
+If you approve or reject within 25 seconds, `await_confirmation` returns immediately with the result. If no action has been taken yet, it returns `status: "confirmation_required"` again — and your agent should call it again. A well-behaved agent loops on `await_confirmation` until the confirmation is resolved or expired.
 
 ## How you approve or reject
 
@@ -104,11 +104,11 @@ if (result.status === "ok") {
       confirmation_id: result.confirmation_id
     });
 
-    if (outcome.status === "pending") {
+    if (outcome.status === "confirmation_required") {
       // Still waiting — loop and try again
       console.log("Still waiting for confirmation…");
     }
-  } while (outcome.status === "pending");
+  } while (outcome.status === "confirmation_required");
 
   if (outcome.status === "ok") {
     console.log("Approved! Transaction hash:", outcome.tx_hash);

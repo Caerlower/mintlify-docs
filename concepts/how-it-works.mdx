@@ -1,5 +1,5 @@
 ---
-title: "How Nebula Works: MCP, Hub, and Stellar"
+title: "How Nebula Works: The MCP, Hub, and Stellar Layers"
 sidebarTitle: "How It Works"
 description: "Understand how Nebula's MCP server, Hub, and Stellar blockchain fit together to give AI agents safe, bounded on-chain capabilities."
 ---
@@ -17,7 +17,7 @@ Your Agent (Claude / Cursor / custom)
                                           │
                                     Policy checks
                                     Confirmation flow
-                                    Privy custody
+                                    Secure key custody
                                           │
                                           ▼
                                      Stellar network
@@ -42,7 +42,7 @@ The Hub is the heart of Nebula. It is a Next.js application running at [nebulaon
 - **Authentication** — validates your `NEBULA_TOKEN`, looks up the associated agent and wallet.
 - **Policy enforcement** — before any transaction is signed, the Hub runs the full confirmation matrix against your current policy settings (see [Spending Policy](/concepts/spending-policy)).
 - **Human confirmations** — if a transfer requires your approval, the Hub pauses execution and waits. Your agent polls with `await_confirmation`; you approve or reject from the dashboard.
-- **Privy custody** — the Hub holds your wallet's private key inside Privy's embedded wallet infrastructure. Signing happens here, server-side. The key never travels over the network.
+- **Secure key custody** — the Hub holds your wallet's private key in secure custody. Signing happens server-side. The key never travels over the network.
 - **Dashboard** — the web UI where you manage policy, review approvals, view transaction history, and create new agent tokens.
 
 ### Layer 3 — Stellar
@@ -74,7 +74,7 @@ Here is what happens when your agent calls `transfer`:
     The confirmation matrix evaluates the transfer against your policy (paused? denylisted? over daily cap? over per-tx cap? within micro threshold? whitelisted destination?). The result is one of three outcomes: `auto`, `confirm`, or `reject`.
   </Step>
   <Step title="Outcome is acted on">
-    - **`auto`** — the Hub calls Privy to sign the Stellar transaction XDR and broadcasts it. The tool returns `status: "ok"` with the transaction hash.
+    - **`auto`** — the Hub signs the Stellar transaction XDR and broadcasts it. The tool returns `status: "ok"` with the transaction hash.
     - **`confirm`** — the Hub creates a pending confirmation record and returns `status: "confirmation_required"` with a `confirmation_id` and an `approve_url`. Your agent should call `await_confirmation` and loop until you approve or reject from the dashboard.
     - **`reject`** — the tool returns `status: "rejected"` with the reason. No transaction is created.
   </Step>
@@ -84,7 +84,7 @@ Here is what happens when your agent calls `transfer`:
 
 When you create an agent on the Connect page, Nebula:
 
-1. Creates a Privy embedded wallet on Stellar (testnet or mainnet, depending on your account setting).
+1. Creates a new Stellar wallet (testnet or mainnet, depending on your account setting) and securely stores its private key in the Hub.
 2. Records the mapping between your `nbl_live_…` token and that wallet's address in the Hub database.
 3. Associates a policy record with that agent.
 

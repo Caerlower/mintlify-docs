@@ -1,7 +1,7 @@
 ---
-title: "mpp_open_session — Open a Micropayment Channel"
+title: "mpp_open_session — Open a Stellar Micropayment Channel"
 sidebarTitle: "mpp_open_session"
-description: "Open an MPP payment channel with a USDC budget for streaming per-call payments. Returns a demo URL for testing."
+description: "Open an MPP channel with a locked USDC budget. Each mpp_fetch call commits off-chain; the full session settles in one on-chain transaction when you close."
 ---
 
 `mpp_open_session` opens a Micropayment Protocol (MPP) payment channel and locks a USDC budget into it. Once a session is open, each call to `mpp_fetch` makes an off-chain channel commitment against that budget — no on-chain transaction is needed per request. The channel is settled on Stellar only when you call `mpp_close_session`, at which point any unused funds are returned to your wallet.

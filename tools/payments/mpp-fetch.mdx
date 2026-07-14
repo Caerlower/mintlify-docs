@@ -1,7 +1,7 @@
 ---
-title: "mpp_fetch — Fetch a URL Within an MPP Session"
+title: "mpp_fetch — Fetch an MPP-Gated URL via Active Session"
 sidebarTitle: "mpp_fetch"
-description: "Fetch an MPP-gated URL using your active payment channel. Each call makes an off-chain channel payment."
+description: "Commit an off-chain micropayment and fetch an MPP-gated URL in one call. Requires an active session opened with mpp_open_session. No on-chain tx per call."
 ---
 
 `mpp_fetch` fetches an MPP-gated URL by committing a payment against your active payment channel. Unlike `x402_fetch`, this does not broadcast a Stellar transaction on every call — instead, the Hub advances the channel state off-chain. All committed amounts are settled in a single on-chain transaction when you call `mpp_close_session`.

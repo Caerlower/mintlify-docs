@@ -1,7 +1,7 @@
 ---
-title: "await_confirmation — Poll for Human Approval"
+title: "await_confirmation — Poll Pending Human Approval Requests"
 sidebarTitle: "await_confirmation"
-description: "Poll a pending human confirmation request. Re-call with the same ID until the confirmation is approved, rejected, or expires."
+description: "Poll a pending human confirmation request (max 25 s per call). Re-call with the same confirmation_id until the decision is approved, rejected, or expired."
 ---
 
 When a transaction requires human approval — because the destination is new and the amount exceeds the micro-threshold — any Nebula payment tool will return a `confirmation_required` response instead of executing the transaction. `await_confirmation` lets your agent wait for the human's decision by polling with the `confirmation_id` from that response.
@@ -75,8 +75,10 @@ loop:
 ```json await_confirmation request
 {
   "tool": "await_confirmation",
-  "confirmation_id": "conf_01HZ4XM7KPQR2NSTV8WY3ZA6B",
-  "timeout_seconds": 20
+  "input": {
+    "confirmation_id": "conf_01HZ4XM7KPQR2NSTV8WY3ZA6B",
+    "timeout_seconds": 20
+  }
 }
 ```
 

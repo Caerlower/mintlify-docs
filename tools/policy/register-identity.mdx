@@ -4,7 +4,7 @@ sidebarTitle: "register_identity"
 description: "Register a Stellar8004 on-chain identity for your agent. Idempotent — safe to call multiple times. Returns agent ID and explorer links."
 ---
 
-`register_identity` creates a Stellar8004 (ERC-8004 compatible) on-chain identity record for your agent's wallet. The identity is signed via the Nebula Hub using your agent's Privy-managed key. Once registered, your agent has a verifiable, explorer-visible presence on the Stellar network that other agents and gated services can look up to assess trustworthiness.
+`register_identity` creates a Stellar8004 (ERC-8004 compatible) on-chain identity record for your agent's wallet. The identity is signed via the Nebula Hub. Once registered, your agent has a verifiable, explorer-visible presence on the Stellar network that other agents and gated services can look up to assess trustworthiness.
 
 This call is **idempotent** — if your agent is already registered, calling again simply returns the existing identity without creating a duplicate or incurring any fee. It is safe to call on every cold-start.
 

@@ -1,13 +1,13 @@
 ---
-title: "Frequently Asked Questions About Nebula"
+title: "Nebula FAQ: Agent Wallets, Spending Policy, and Payments"
 sidebarTitle: "FAQ"
-description: "Common questions about connecting agents, spending policy, wallet custody, payments, and troubleshooting Nebula."
+description: "Common questions about connecting agents, spending policy, wallet custody, funding, payments, confirmations, and troubleshooting Nebula."
 ---
 
 If you are new to Nebula or hitting something unexpected, this page covers the most common questions from developers and operators. For step-by-step configuration guides, see the [Policy Limits](/configuration/policy-limits) and [Remote MCP & OAuth](/configuration/remote-mcp-oauth) pages. For diagnosing specific error messages, see the [Troubleshooting](/help/troubleshooting) guide.
 
 <Accordion title="Where are my agent's private keys?">
-  Your agent's Stellar private keys are **never exposed to your code, your machine, or the MCP package**. Keys are generated and stored inside the Nebula Hub using [Privy](https://privy.io) custody infrastructure — they live in hardware-secured enclaves and never leave the Hub.
+  Your agent's Stellar private keys are **never exposed to your code, your machine, or the MCP package**. Keys are generated and stored inside the Nebula Hub using hardware-secured custody infrastructure — they live in secure enclaves and never leave the Hub.
 
   When your agent calls a tool like `transfer` or `x402_fetch`, the MCP package sends only your `nbl_live_…` token to the Hub over HTTPS. The Hub authenticates the token, evaluates your spending policy, and signs the Stellar transaction internally before broadcasting it. Your agent sees the result (transaction hash, balance update) but never touches a secret key.
 

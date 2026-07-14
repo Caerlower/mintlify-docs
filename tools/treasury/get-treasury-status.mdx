@@ -1,7 +1,7 @@
 ---
-title: "get_treasury_status — View Treasury Balances and Yield"
+title: "get_treasury_status — View Treasury Balances and APY"
 sidebarTitle: "get_treasury_status"
-description: "Returns liquid vs Blend pool balances, current APY, liquidity threshold, and last rebalance time for your agent's treasury."
+description: "Returns a full treasury snapshot: liquid USDC, Blend pool balance, weighted APY, liquidity threshold, and the timestamp of the last automatic rebalance."
 ---
 
 `get_treasury_status` returns a comprehensive snapshot of your agent's treasury: how much USDC is immediately spendable, how much is deployed in Blend earning yield, the combined total, the current APY, the configured liquidity floor, and when Nebula last triggered an automatic rebalance. Call this before any significant payment to confirm sufficient liquid funds are on hand.

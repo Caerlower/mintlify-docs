@@ -1,7 +1,7 @@
 ---
 title: "Nebula: Stellar Wallets and Payments for AI Agents"
 sidebarTitle: "Introduction"
-description: "Nebula is an MCP server that gives AI agents a Stellar wallet with on-chain policy, automated yield, x402 & MPP payments, and verifiable reputation."
+description: "Nebula is an MCP server that gives AI agents a Stellar wallet — secure key custody, spending policy, x402 & MPP payments, yield, and human approvals."
 ---
 
 AI agents can already plan, reason, and call tools — but they stop cold at paywalls, token gates, and any task that requires moving real money. Nebula closes that gap. It is an MCP (Model Context Protocol) server that gives your agent a dedicated Stellar wallet, enforces spending limits you define, and handles all key management securely inside the Nebula Hub. Your agent never touches a private key; it simply expresses intent, and Nebula makes sure that intent stays within the bounds you set.
@@ -10,10 +10,10 @@ AI agents can already plan, reason, and call tools — but they stop cold at pay
 
 <CardGroup cols={2}>
   <Card title="Bounded Stellar Wallet" icon="wallet">
-    Each agent gets a dedicated Stellar public address backed by Privy embedded-wallet custody. Private keys never leave the Hub — your agent only needs a `NEBULA_TOKEN` to transact.
+    Each agent gets a dedicated Stellar public address backed by Nebula's secure key custody. Private keys never leave the Hub — your agent only needs a `NEBULA_TOKEN` to transact.
   </Card>
-  <Card title="On-Chain Spending Policy" icon="shield-check">
-    A Soroban smart contract enforces per-transaction caps, daily caps, address whitelists, and denylists. No transaction can bypass the policy, even if the agent is instructed to try.
+  <Card title="Spending Policy" icon="shield-check">
+    Per-transaction caps, daily caps, address whitelists, and denylists are enforced by the Hub before every transaction is signed. An optional Soroban smart contract adds a second independent layer of enforcement on-chain.
   </Card>
   <Card title="x402 & MPP Payments" icon="bolt">
     Agents can pay for paywalled HTTP resources inline using Stellar USDC (x402), and open metered payment sessions (MPP) for multi-step tasks — all without breaking the conversation flow.
@@ -25,7 +25,7 @@ AI agents can already plan, reason, and call tools — but they stop cold at pay
 
 ## How private keys work
 
-Nebula uses a **Hub custody model**. When you sign in at [nebulaonchain.xyz](https://nebulaonchain.xyz), the Hub provisions a Privy embedded wallet on your behalf and assigns it a Stellar address. The private key for that address lives exclusively inside the Hub — encrypted and managed by Privy. It is never returned to you, never transmitted to your agent, and never written into any configuration file.
+Nebula uses a **Hub custody model**. When you sign in at [nebulaonchain.xyz](https://nebulaonchain.xyz), the Hub provisions a wallet on your behalf and assigns it a Stellar address. The private key for that address lives exclusively inside the Hub — encrypted and managed by Nebula's secure custody layer. It is never returned to you, never transmitted to your agent, and never written into any configuration file.
 
 Your agent authenticates with a **bearer token** that looks like `nbl_live_…`. That token tells the Hub which wallet to use and which policy to apply. If the token is ever compromised, you can revoke it from the dashboard and issue a new one — the wallet and its funds remain safe.
 

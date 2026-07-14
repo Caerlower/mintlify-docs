@@ -1,7 +1,7 @@
 ---
-title: "x402_pay — Direct Payment to an x402 Resource"
+title: "x402_pay — Pay an x402 Resource at a Known USDC Price"
 sidebarTitle: "x402_pay"
-description: "Pay an x402-gated URL with a known USDC amount. Use when you already know the exact price from a 402 challenge."
+description: "Pay an x402-gated URL directly with a known USDC amount. Use when your agent has already parsed the 402 challenge and extracted the exact price."
 ---
 
 `x402_pay` makes a direct USDC payment to an x402-gated resource when you already know the exact amount required. This is typically used after your agent has already received and parsed an HTTP 402 challenge and has extracted the price and facilitator address from it. Unlike `x402_fetch`, this tool does not issue a preliminary GET request — it goes straight to payment.

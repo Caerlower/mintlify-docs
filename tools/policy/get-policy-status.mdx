@@ -1,7 +1,7 @@
 ---
 title: "get_policy_status — Read Your Agent's Spending Policy"
 sidebarTitle: "get_policy_status"
-description: "Returns the current spending policy including USDC caps, micro-threshold, pause state, whitelist, and denylist."
+description: "Returns the full spending policy snapshot: USDC micro-threshold, per-tx and daily caps, today's spend, pause state, whitelist, and denylist."
 ---
 
 `get_policy_status` returns a complete snapshot of the spending policy currently governing your agent's wallet. This includes the micro-payment auto-approve threshold, per-transaction and daily USDC caps, how much has already been spent today, the full whitelist and denylist, and whether all spending is currently paused.
@@ -48,8 +48,8 @@ The policy engine evaluates each outgoing transaction in this order:
 
 1. **Paused** → reject
 2. **Destination on denylist** → reject
-3. **Amount > `per_tx_cap`** → reject
-4. **Daily total would exceed `daily_cap`** → reject
+3. **Daily total would exceed `daily_cap`** → reject
+4. **Amount > `per_tx_cap`** → reject
 5. **Amount ≤ `micro_threshold`** → auto-approve
 6. **Destination on whitelist** → auto-approve
 7. **New destination** → `confirmation_required` (human must approve via dashboard)

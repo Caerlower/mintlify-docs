@@ -1,7 +1,7 @@
 ---
-title: "On-Chain Spending Policy for AI Agents"
+title: "Spending Policy and Transaction Limits for AI Agents"
 sidebarTitle: "Spending Policy"
-description: "Nebula enforces spending limits in a Soroban smart contract. Learn how caps, whitelists, denylists, and the micro-threshold protect your funds."
+description: "Nebula enforces per-transaction caps, daily limits, address whitelists, and denylists before every transaction is signed. Learn how each check works."
 ---
 
 Giving an AI agent access to a real wallet means you need real guardrails — not just settings in a config file that a clever prompt could theoretically route around. Nebula enforces your spending policy in two places: in the Hub's policy engine (which runs before every transaction is signed) and optionally in a **Soroban smart contract** on the Stellar blockchain, which provides an independent second layer of enforcement that the Hub itself cannot bypass.
@@ -74,7 +74,7 @@ Every transfer is evaluated through a sequence of checks in order. The first che
 
 | Outcome | What happens |
 |---|---|
-| `auto` | The Hub signs the transaction immediately via Privy and broadcasts it to Stellar. The tool returns `status: "ok"` with the transaction hash. |
+| `auto` | The Hub signs the transaction immediately and broadcasts it to Stellar. The tool returns `status: "ok"` with the transaction hash. |
 | `confirm` | The Hub creates a pending approval record and returns `status: "confirmation_required"`. The agent must poll with `await_confirmation` while you review the request in the dashboard. |
 | `reject` | No transaction is created. The tool returns `status: "rejected"` with a reason string. The agent should surface this to you as an error. |
 

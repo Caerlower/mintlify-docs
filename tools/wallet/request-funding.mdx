@@ -1,7 +1,7 @@
 ---
 title: "request_funding — Get Instructions to Fund Your Wallet"
 sidebarTitle: "request_funding"
-description: "Returns Friendbot funding instructions for testnet, or mainnet funding instructions for the agent's Stellar address."
+description: "Returns a Friendbot URL for testnet or fund-via-exchange guidance for mainnet. Use this to top up the agent's XLM balance before running transactions."
 ---
 
 The `request_funding` tool returns the information needed to add XLM to the agent's Nebula wallet. On **testnet**, it provides a Friendbot URL that you can open in a browser or call with a GET request to receive 10,000 free test XLM. On **mainnet**, it returns the wallet's Stellar address along with instructions to send funds from a crypto exchange or an existing Stellar account. Use this tool when setting up a new wallet or when the agent needs to prompt a human to top up its balance.

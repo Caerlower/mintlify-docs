@@ -11,7 +11,7 @@ The Micropayment Protocol (MPP) lets your agent open a pre-funded payment channe
 MPP channels are off-chain commit channels anchored on Stellar. When you open a session, the Hub locks your `budget_usdc` in a channel. Each `mpp_fetch` call is an off-chain micropayment commitment — cryptographically signed but not broadcast to the ledger yet. Only `mpp_close_session` triggers the final on-chain settlement, which records the total spend and returns the unused portion to your wallet. This means you get sub-second payment latency for every fetch inside the session, with full on-chain finality at the end.
 
 <Note>
-  MPP uses the **`@stellar/mpp` v0.7.1** library under the hood. Sessions are scoped to a single merchant (recipient). If you need to pay multiple merchants, open a separate session for each.
+  MPP sessions are scoped to a single merchant (recipient). If you need to pay multiple merchants, open a separate session for each.
 </Note>
 
 ## Session lifecycle
@@ -170,7 +170,7 @@ MPP channels are off-chain commit channels anchored on Stellar. When you open a 
 
 MPP sessions interact with your Nebula spending policy in a specific way:
 
-- **Opening a session** (`mpp_open_session`) locks the `budget_usdc` amount. This lock uses `ignoreSpendCaps` internally so the channel reservation is not double-counted against your per-transaction cap. The Hub enforces that the budget is within your overall policy.
+- **Opening a session** (`mpp_open_session`) locks the `budget_usdc` amount as a single channel reservation — it is not double-counted against your per-transaction cap. The Hub enforces that the budget is within your overall policy.
 - **Individual `mpp_fetch` calls** count toward your daily spending caps. Each off-chain commit is tracked and contributes to `spent_today_usdc` in `get_policy_status`.
 - **Closing a session** settles only the amount actually committed — the refunded portion is released and does not count as spend.
 

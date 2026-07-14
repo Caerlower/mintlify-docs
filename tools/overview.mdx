@@ -1,7 +1,7 @@
 ---
-title: "Nebula MCP Tools: Complete Reference Overview"
+title: "Nebula MCP Tools — Complete Agent Reference Guide"
 sidebarTitle: "Overview"
-description: "Browse all MCP tools available to your Nebula agent, organized by category: wallet, payments, treasury, policy, and identity."
+description: "Browse every MCP tool available to your Nebula agent — wallet, payments, treasury, policy, and identity — with full parameter and response docs."
 ---
 
 Nebula exposes its capabilities as a set of named tools delivered over the [Model Context Protocol (MCP)](https://modelcontextprotocol.io). When an AI agent connects to Nebula, it discovers these tools automatically and can call them in natural conversation. Every tool call travels through the Nebula Hub at `https://nebulaonchain.xyz`, which enforces your spending policy, obtains human confirmation when required, and submits signed transactions to the Stellar network on the agent's behalf.
@@ -97,7 +97,7 @@ Log in to your dashboard at [nebulaonchain.xyz](https://nebulaonchain.xyz) to co
 
 Advanced users can bypass MCP and call the Hub's tool API directly. This is useful for server-side integrations or testing.
 
-**Endpoint:** `POST https://nebulaonchain.xyz/api/tools/:name`
+**Endpoint:** `POST https://nebulaonchain.xyz/api/tools/{toolname}`
 
 **Headers:**
 

@@ -30,7 +30,7 @@ A higher `avgScore` from a larger `feedbackCount` across many `uniqueClients` is
 
 Call `register_identity` once when your agent first comes online. It is fully **idempotent** — calling it multiple times is safe and will not create duplicate records or overwrite your existing score. If you're unsure whether the identity has been registered, just call it; the Hub checks first and returns the existing identity if one is found.
 
-Registration signs the identity record via the Hub/Privy key infrastructure — your agent does not need to manage private keys directly.
+Registration signs the identity record via the Hub — your agent does not need to manage private keys directly.
 
 **Example:**
 
