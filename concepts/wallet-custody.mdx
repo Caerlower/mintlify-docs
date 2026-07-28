@@ -1,7 +1,7 @@
 ---
 title: "Custody"
 sidebarTitle: "Custody"
-description: "Learn how Nebula's Hub custody model keeps private keys secure while your agent uses a simple bearer token to transact on Stellar."
+description: "Private keys stay in the Hub. Agents use a bearer token only."
 ---
 
 # Custody
@@ -10,7 +10,7 @@ Each agent gets an isolated Privy-managed Stellar wallet. Signing happens only i
 
 | Who | Holds |
 | --- | --- |
-| You (dashboard) | Privy session \+ agent ownership |
+| You (dashboard) | Privy session and agent ownership |
 | Agent | `nbl_live_…` token or OAuth access token |
 | Hub | Privy-authorized signing material |
 

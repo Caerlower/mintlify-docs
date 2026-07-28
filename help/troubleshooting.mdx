@@ -14,7 +14,7 @@ description: "Fix common problems with Nebula token setup, MCP connection errors
 
 ## Unauthorized / redirect errors
 
-Tokens minted on testnet fail against mainnet (and the reverse). Apex `/mcp` redirects can drop Bearer headers — use `testnet.` or `mainnet.` hosts only.
+Tokens minted on testnet fail against mainnet (and the reverse). Apex `/mcp` redirects can drop Bearer headers. Use `testnet.` or `mainnet.` hosts only.
 
 ## Policy rejected
 
@@ -22,12 +22,12 @@ Check `get_policy_status`: caps, pause, allow/deny. Raise caps or unpause in the
 
 ## confirmation\_required forever
 
-Approve or reject at `/approve/:id`. `await_confirmation` waits at most 25 seconds per call — re-call with the same id until decided or expired.
+Approve or reject at `/approve/:id`. `await_confirmation` waits at most 25 seconds per call. Re-call with the same id until decided or expired.
 
 ## Funding / USDC
 
-On testnet, `request_funding` returns Friendbot instructions. Open a USDC trustline before x402/MPP/swaps into USDC.
+On testnet, `request_funding` returns Friendbot instructions. Open a USDC trustline before x402, MPP, or swaps into USDC.
 
 ## Treasury looks stuck
 
-Call `get_treasury_status`. Threshold and manual Blend moves are dashboard-only; agents can try `optimize_treasury`.
+Call `get_treasury_status`. Threshold and manual Blend moves are dashboard-only. Agents can try `optimize_treasury`.

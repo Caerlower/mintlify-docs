@@ -6,10 +6,10 @@ description: "Connect an agent to Nebula on testnet in a few minutes."
 
 # Quickstart
 
-Connect an agent to Nebula on testnet, then call `ping` and `get_address`.
+Connect an agent on testnet, then call `ping` and `get_address`.
 
 <Warning>
-  Never put a Stellar secret key (`S…`) in MCP config — only `NEBULA_TOKEN`.
+  Never put a Stellar secret key (`S…`) in MCP config. Only use `NEBULA_TOKEN`.
 </Warning>
 
 <Steps>
@@ -17,7 +17,7 @@ Connect an agent to Nebula on testnet, then call `ping` and `get_address`.
     Sign in at [testnet.nebulaonchain.xyz](https://testnet.nebulaonchain.xyz) → **Connect** → create an agent → copy the `nbl_live_…` token (shown once).
   </Step>
   <Step title="Add MCP config">
-    Use the published [`nebulamcp-stdio`](https://www.npmjs.com/package/nebulamcp-stdio) package. Point `NEBULA_HUB` at the **same host** where you minted the token.
+    Use [`nebulamcp-stdio`](https://www.npmjs.com/package/nebulamcp-stdio). Point `NEBULA_HUB` at the **same host** where you minted the token.
 
     ```json
     {
@@ -38,7 +38,7 @@ Connect an agent to Nebula on testnet, then call `ping` and `get_address`.
     - **Cursor:** Settings → MCP, or `~/.cursor/mcp.json`. Toggle the server off/on to reload.
   </Step>
   <Step title="Verify">
-    Ask your agent to call `ping`, then `get_address`. You should get a live timestamp and a `G…` Stellar address.
+    Ask your agent to call `ping`, then `get_address`. You should get a timestamp and a `G…` Stellar address.
 
     On testnet, call `request_funding` for Friendbot instructions to top up XLM.
   </Step>
@@ -46,7 +46,7 @@ Connect an agent to Nebula on testnet, then call `ping` and `get_address`.
 
 ## Next
 
-- [Networks](/networks) — testnet vs mainnet hosts
-- [Connect](/connect-agent) — Claude Code, remote MCP, OAuth
-- [Set policy limits](/guides/policy-limits) — caps before spend
-- [Tools overview](/tools/overview) — full tool list
+- [Networks](/networks): testnet vs mainnet hosts
+- [Connect](/connect-agent): Claude Code, remote MCP, OAuth
+- [Set policy limits](/guides/policy-limits): caps before spend
+- [Tools overview](/tools/overview): full tool list

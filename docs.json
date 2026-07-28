@@ -1,11 +1,11 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "name": "Nebula",
-  "theme": "luma",
+  "theme": "maple",
   "colors": {
-    "primary": "#8E6BFF",
-    "light": "#3ECFC1",
-    "dark": "#0A0912"
+    "primary": "#8B5CF6",
+    "light": "#A78BFA",
+    "dark": "#0B0B0D"
   },
   "favicon": "/favicon.svg",
   "navbar": {
@@ -53,8 +53,8 @@
           {
             "group": "Reference",
             "pages": [
-              "tools/wallet",
               "tools/overview",
+              "tools/wallet",
               "tools/payments",
               "tools/treasury",
               "tools/policy"
@@ -133,5 +133,9 @@
       "permanent": true
     }
   ],
-  "description": "Treasury infrastructure for AI agents on Stellar — connect MCP, set policy, pay with x402/MPP, and earn yield."
+  "description": "Treasury infrastructure for AI agents on Stellar: connect MCP, set policy, pay with x402/MPP, and earn yield.",
+  "appearance": {
+    "default": "dark",
+    "strict": false
+  }
 }

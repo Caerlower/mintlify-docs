@@ -13,7 +13,7 @@ When a tool needs human approval, the Hub returns `confirmation_required` with a
     Open the approve link from the response (or `/approve/:id` on the Hub) and approve or reject.
   </Step>
   <Step title="Agent polls await_confirmation">
-    Call `await_confirmation` with the same `confirmation_id`. Each call waits up to **25 seconds**, then returns pending if you have not decided yet — the agent should call again until approved, rejected, or expired.
+    Call `await_confirmation` with the same `confirmation_id`. Each call waits up to **25 seconds**, then returns pending if you have not decided yet. The agent should call again until approved, rejected, or expired.
   </Step>
 </Steps>
 

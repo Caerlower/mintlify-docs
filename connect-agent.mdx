@@ -6,7 +6,7 @@ description: "Wire Claude Desktop, Cursor, Claude Code, or remote MCP to your Ne
 
 # Connect
 
-Every agent needs a `nbl_live_…` bearer token from the Hub **Connect** page. The token is bound to that agent's ledger — point MCP at the **same host** where you created it.
+Every agent needs a `nbl_live_…` bearer token from the Hub **Connect** page. The token is bound to that agent's ledger. Point MCP at the **same host** where you created it.
 
 <Steps>
   <Step title="Create a token">
@@ -20,7 +20,7 @@ Every agent needs a `nbl_live_…` bearer token from the Hub **Connect** page. T
 | Variable | Required | Description |
 | --- | --- | --- |
 | `NEBULA_TOKEN` | Yes | `nbl_live_…` from Connect |
-| `NEBULA_HUB` | Yes (recommended) | Hub host matching the token — `https://testnet.nebulaonchain.xyz` or `https://mainnet.nebulaonchain.xyz` |
+| `NEBULA_HUB` | Recommended | Matching Hub host: `https://testnet.nebulaonchain.xyz` or `https://mainnet.nebulaonchain.xyz` |
 
 <Warning>
   Do not use the apex domain (`nebulaonchain.xyz`) for MCP or `/mcp`. Apex product routes redirect and can drop Bearer tokens. See [Networks](/networks).
@@ -54,7 +54,7 @@ POST https://testnet.nebulaonchain.xyz/mcp
 Authorization: Bearer nbl_live_…
 ```
 
-Or use the same `nebulamcp-stdio` JSON in `.claude/mcp.json` / Claude Desktop config if you need local stdio.
+Or use the same `nebulamcp-stdio` JSON in `.claude/mcp.json` if you need local stdio.
 
 ## Remote MCP (Streamable HTTP)
 
