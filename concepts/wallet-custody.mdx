@@ -1,88 +1,23 @@
 ---
-title: "Wallet Custody: How Nebula Secures Your Agent's Keys"
-sidebarTitle: "Wallet Custody"
+title: "Custody"
+sidebarTitle: "Custody"
 description: "Learn how Nebula's Hub custody model keeps private keys secure while your agent uses a simple bearer token to transact on Stellar."
 ---
 
-One of the most important things to understand about Nebula is how it handles private keys — because it is designed so that you never have to. This page explains the custody model, what your agent can do with its token, and how to fund and manage wallets on testnet and mainnet.
+# Custody
 
-## The custody model
+Each agent gets an isolated Privy-managed Stellar wallet. Signing happens only inside the Hub after policy (and optional human confirmation) pass.
 
-Nebula uses a **Hub custody model** for Stellar key management. When you create an agent, the Hub generates a new Stellar keypair and stores the private key in Nebula's secure custody layer. The private key is:
+| Who | Holds |
+| --- | --- |
+| You (dashboard) | Privy session \+ agent ownership |
+| Agent | `nbl_live_…` token or OAuth access token |
+| Hub | Privy-authorized signing material |
 
-- **Never returned to you** during or after setup.
-- **Never transmitted** to the `@nebula/mcp` package or any MCP client.
-- **Never written** to a config file or environment variable.
-- **Always signed server-side** — when a transaction needs signing, the Hub performs the signing operation internally. The key never leaves the Hub.
+The token authorizes tool calls. It cannot sign Stellar transactions by itself.
 
-Your agent interacts with its wallet exclusively through a **bearer token** (`nbl_live_…`). That token is mapped to the wallet inside the Hub. It authorises tool calls but has no ability to sign Stellar transactions on its own — only the Hub can do that, and only after passing your policy checks.
+<Warning>
+  Never put a Stellar secret key (`S…`) in MCP config, env files, or prompts.
+</Warning>
 
-<Note>
-  If your token is compromised, go to the dashboard and regenerate it immediately. Your wallet and its funds are unaffected because the token alone cannot move funds without the Hub's signing step.
-</Note>
-
-## Each agent gets its own address
-
-Every agent you create on the Connect page gets a dedicated Stellar public address. You can see this address by asking your agent to call `get_address`, or by visiting the dashboard. The address is permanent for the lifetime of that agent — it does not change if you regenerate the token.
-
-Having a dedicated address per agent means:
-- Transaction history is clearly attributed to each agent.
-- Policy is scoped per agent — different agents can have different caps and whitelists.
-- You can fund agents independently and track balances separately.
-
-## What your agent can do
-
-The core wallet tools available to your agent are:
-
-| Tool | What it does |
-|---|---|
-| `ping` | Health check — confirms Nebula tools are reachable. |
-| `get_address` | Returns the agent's Stellar public address and network. |
-| `check_balance` | Returns XLM and USDC balances for the agent's wallet. |
-| `transfer` | Sends XLM to a Stellar address, subject to policy checks. |
-| `request_funding` | Returns Friendbot URL (testnet) or funding instructions (mainnet). |
-
-Beyond these basics, agents can also use `x402` tools to pay for paywalled HTTP resources, `mpp` session tools for metered payments, and treasury tools to interact with the Blend yield protocol.
-
-## Testnet vs mainnet
-
-<Tabs>
-  <Tab title="Testnet">
-    Testnet wallets use Stellar's public test network. Funds have no real-world value and are used for development and testing.
-
-    To fund a testnet wallet, ask your agent to call `request_funding`. It will return a Friendbot URL:
-
-    ```
-    https://friendbot.stellar.org?addr=G…
-    ```
-
-    Opening that URL in a browser (or fetching it with curl) sends 10,000 test XLM to your wallet instantly. You can call it multiple times if you run low.
-
-    <Tip>
-      Start on testnet. The workflow for connecting agents, configuring policy, and handling confirmations is identical to mainnet — without any real-money risk.
-    </Tip>
-  </Tab>
-
-  <Tab title="Mainnet">
-    Mainnet wallets operate on Stellar's production network with real XLM and USDC.
-
-    To fund a mainnet wallet:
-    1. Call `get_address` to get your agent's Stellar public address.
-    2. Send XLM or USDC from an exchange (Coinbase, Kraken, etc.) or from another Stellar account directly to that address.
-    3. All Stellar accounts require a minimum balance of 1 XLM to be activated — make sure your first deposit is at least 1 XLM.
-
-    <Warning>
-      Double-check the destination address before sending mainnet funds. Stellar transactions are irreversible. Use `get_address` to retrieve the address rather than typing it manually.
-    </Warning>
-  </Tab>
-</Tabs>
-
-## Losing or regenerating your token
-
-Your token can be regenerated at any time from the dashboard — go to the **Connect** page, find your agent, and click **Regenerate Token**. The old token stops working immediately. Your wallet address, balance, policy, and transaction history are all preserved.
-
-If you want to retire an agent entirely, you can revoke its token from the dashboard. The underlying wallet address is retained in the Hub for record-keeping, but no new tool calls can be made with the revoked token.
-
-<Accordion title="What happens to my wallet if I stop using Nebula?">
-  Nebula holds your agent's private key in secure custody on the Hub. If you need to export or migrate funds, contact Nebula support. Because Stellar is an open network, any balance in your agent's address can be transferred to any other Stellar address as long as the Hub has access to the signing key.
-</Accordion>
+If a token leaks, revoke it on **Connect** and create a new one. Funds stay behind Hub policy.

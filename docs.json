@@ -20,15 +20,16 @@
         "tab": "Documentation",
         "groups": [
           {
-            "group": "Get Started",
+            "group": "Get started",
             "pages": [
               "introduction",
               "quickstart",
+              "networks",
               "connect-agent"
             ]
           },
           {
-            "group": "Core Concepts",
+            "group": "Concepts",
             "pages": [
               "concepts/how-it-works",
               "concepts/wallet-custody",
@@ -39,17 +40,23 @@
           {
             "group": "Guides",
             "pages": [
+              "guides/policy-limits",
               "guides/x402-payments",
               "guides/mpp-sessions",
+              "guides/swap",
               "guides/treasury-yield",
+              "guides/trustline",
               "guides/reputation"
             ]
           },
           {
-            "group": "Configuration",
+            "group": "Reference",
             "pages": [
-              "configuration/policy-limits",
-              "configuration/remote-mcp-oauth"
+              "tools/wallet",
+              "tools/overview",
+              "tools/payments",
+              "tools/treasury",
+              "tools/policy"
             ]
           },
           {
@@ -60,56 +67,60 @@
             ]
           }
         ]
-      },
-      {
-        "tab": "Tools Reference",
-        "groups": [
-          {
-            "group": "Overview",
-            "pages": [
-              "tools/overview"
-            ]
-          },
-          {
-            "group": "Wallet Tools",
-            "pages": [
-              "tools/wallet/ping",
-              "tools/wallet/get-address",
-              "tools/wallet/check-balance",
-              "tools/wallet/transfer",
-              "tools/wallet/request-funding"
-            ]
-          },
-          {
-            "group": "Payment Tools",
-            "pages": [
-              "tools/payments/x402-fetch",
-              "tools/payments/x402-pay",
-              "tools/payments/mpp-open-session",
-              "tools/payments/mpp-fetch",
-              "tools/payments/mpp-close-session",
-              "tools/payments/mpp-status"
-            ]
-          },
-          {
-            "group": "Treasury Tools",
-            "pages": [
-              "tools/treasury/blend-check-rates",
-              "tools/treasury/get-treasury-status",
-              "tools/treasury/spending-report"
-            ]
-          },
-          {
-            "group": "Policy & Identity",
-            "pages": [
-              "tools/policy/get-policy-status",
-              "tools/policy/await-confirmation",
-              "tools/policy/register-identity",
-              "tools/policy/get-my-reputation"
-            ]
-          }
-        ]
       }
     ]
-  }
+  },
+  "redirects": [
+    {
+      "source": "/tools/wallet/ping",
+      "destination": "/tools/overview",
+      "permanent": true
+    },
+    {
+      "source": "/configuration/policy-limits",
+      "destination": "/guides/policy-limits",
+      "permanent": true
+    },
+    {
+      "source": "/configuration/remote-mcp-oauth",
+      "destination": "/connect-agent",
+      "permanent": true
+    },
+    {
+      "source": "/tools/treasury/get-treasury-status",
+      "destination": "/tools/treasury",
+      "permanent": true
+    },
+    {
+      "source": "/tools/wallet/transfer",
+      "destination": "/tools/wallet",
+      "permanent": true
+    },
+    {
+      "source": "/tools/policy/await-confirmation",
+      "destination": "/tools/policy",
+      "permanent": true
+    },
+    {
+      "source": "/tools/payments/x402-fetch",
+      "destination": "/tools/payments",
+      "permanent": true
+    },
+    {
+      "source": "/tools/policy/get-policy-status",
+      "destination": "/tools/policy",
+      "permanent": true
+    },
+    {
+      "source": "/tools/wallet/get-address",
+      "destination": "/tools/wallet",
+      "permanent": true
+    },
+    {
+      "source": "/tools/payments/mpp-open-session",
+      "destination": "/tools/payments",
+      "permanent": true
+    }
+  ],
+  "description": "Treasury infrastructure for AI agents on Stellar — connect MCP, set policy, pay with x402/MPP, and earn yield."
 }

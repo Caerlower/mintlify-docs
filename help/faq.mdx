@@ -4,88 +4,34 @@ sidebarTitle: "FAQ"
 description: "Common questions about connecting agents, spending policy, wallet custody, funding, payments, confirmations, and troubleshooting Nebula."
 ---
 
-If you are new to Nebula or hitting something unexpected, this page covers the most common questions from developers and operators. For step-by-step configuration guides, see the [Policy Limits](/configuration/policy-limits) and [Remote MCP & OAuth](/configuration/remote-mcp-oauth) pages. For diagnosing specific error messages, see the [Troubleshooting](/help/troubleshooting) guide.
+# FAQ
 
-<Accordion title="Where are my agent's private keys?">
-  Your agent's Stellar private keys are **never exposed to your code, your machine, or the MCP package**. Keys are generated and stored inside the Nebula Hub using hardware-secured custody infrastructure — they live in secure enclaves and never leave the Hub.
+<AccordionGroup>
+  <Accordion title="What package do I install?">
+    Use [`nebulamcp-stdio`](https://www.npmjs.com/package/nebulamcp-stdio) with `npx -y nebulamcp-stdio`. There is no `@nebula/mcp` package.
+  </Accordion>
 
-  When your agent calls a tool like `transfer` or `x402_fetch`, the MCP package sends only your `nbl_live_…` token to the Hub over HTTPS. The Hub authenticates the token, evaluates your spending policy, and signs the Stellar transaction internally before broadcasting it. Your agent sees the result (transaction hash, balance update) but never touches a secret key.
+  <Accordion title="Which Hub URL should I use?">
+    The host where you minted the token: `https://testnet.nebulaonchain.xyz` or `https://mainnet.nebulaonchain.xyz`. Do not use apex for MCP. See [Networks](/networks).
+  </Accordion>
 
-  This means that even if your agent is compromised, an attacker cannot drain your wallet directly — they can only make tool calls within the limits you set in your spending policy.
-</Accordion>
+  <Accordion title="Do agents hold private keys?">
+    No. Keys stay in Hub custody (Privy). Agents only present `nbl_live_…` or OAuth.
+  </Accordion>
 
-<Accordion title="Can my agent lose more than my policy limits allow?">
-  No. Your policy caps are enforced at the Hub on every single tool call before any Stellar transaction is constructed. If a transfer would exceed `max_per_call` or push your daily total above `max_per_day`, it is rejected with a clear error reason before reaching the ledger.
+  <Accordion title="Can my agent change spending caps?">
+    No. Caps, allow/deny, and pause are dashboard-only. Agents call `get_policy_status`.
+  </Accordion>
 
-  For additional assurance, you can enable the on-chain policy contract (set `POLICY_CONTRACT_ID` in your Hub deployment). This deploys a Soroban smart contract on Stellar that independently enforces the same caps. Even in a scenario where the Hub's off-chain enforcement were somehow circumvented, the contract would reject the transaction at the protocol level.
+  <Accordion title="Can my agent deposit to Blend?">
+    Not via MCP. Deposit/withdraw and liquidity threshold are dashboard-only. Agents can call `optimize_treasury` and read status.
+  </Accordion>
 
-  Start with conservative caps and raise them as you gain confidence. See [Policy Limits](/configuration/policy-limits) for configuration details.
-</Accordion>
+  <Accordion title="Why did a transfer ask for approval?">
+    Amount, destination risk, or policy thresholds triggered [confirmations](/concepts/confirmations). Approve in the dashboard and poll `await_confirmation`.
+  </Accordion>
 
-<Accordion title="What is the difference between XLM and USDC in Nebula?">
-  **XLM** is Stellar's native asset. Your agent's wallet holds XLM and can send it to any Stellar address. XLM is also used to pay Stellar network fees (called the base fee), which are fractions of a cent per transaction.
-
-  **USDC** is Circle's USD-pegged stablecoin on Stellar. Nebula uses USDC as the unit for policy caps, x402 payments, MPP channel budgets, and treasury yield — because its value is stable and predictable.
-
-  Your `max_per_call` and `max_per_day` limits are denominated in USDC. When your agent makes an XLM transfer, Nebula converts the amount to its USDC equivalent at the live exchange rate before checking it against your policy. The conversion is transparent — you will see both the XLM amount and its USDC equivalent in your spending report.
-
-  For payments to x402-protected APIs, your agent pays in USDC. For standard Stellar transfers, your agent can send either asset. Treasury yield is earned on USDC deposited into Blend lending pools.
-</Accordion>
-
-<Accordion title="How do I fund my agent's wallet?">
-  The funding method depends on whether you are on testnet or mainnet:
-
-  **Testnet:**
-  Use the `request_funding` tool. Your agent will receive a Friendbot URL — calling that URL credits your agent's testnet address with XLM. You can also use the [Circle USDC faucet](https://faucet.circle.com/) to get testnet USDC after opening a USDC trustline via the Connect page.
-
-  **Mainnet:**
-  First get your agent's Stellar address using the `get_address` tool. Then send XLM or USDC to that address from any Stellar-compatible wallet or exchange. The funds will appear in your agent's balance as soon as the Stellar transaction is confirmed (usually within 5 seconds).
-
-  You can monitor your agent's balance at any time with the `get_balance` tool or from the dashboard.
-</Accordion>
-
-<Accordion title="What happens when a confirmation times out?">
-  When your agent attempts a transfer to an address that is not on your whitelist (and the amount is above `micro_threshold`), the Hub responds with `confirmation_required` and a `confirmation_id`. A human must visit the [Approvals tab](https://nebulaonchain.xyz) on the dashboard and approve or reject the transaction.
-
-  Your agent calls `await_confirmation` with the `confirmation_id` to wait for a decision. The Hub waits up to **25 seconds** per call to avoid hanging serverless functions. If the human has not acted within that window, `await_confirmation` returns `"still pending — call again"` rather than timing out permanently.
-
-  Your agent should loop: re-call `await_confirmation` with the same `confirmation_id` until it receives `approved`, `rejected`, or `expired`. If the confirmation expires before a human acts, the transaction is cancelled entirely. Your agent should treat an expired confirmation as a cancelled operation and either re-initiate the transfer (which will generate a fresh confirmation) or notify the user that the operation did not complete.
-</Accordion>
-
-<Accordion title="Can multiple agents share one Nebula account?">
-  Each entry on your [Connect page](https://nebulaonchain.xyz/connect) generates a separate `nbl_live_…` token, and each token is associated with its own isolated Stellar wallet. You can create as many agent entries as you need — for example, one per project, environment, or AI client.
-
-  All of your agents and their wallets are visible from the same dashboard account, so you can manage policy, view spending reports, and handle approvals for all of them in one place. Each agent's policy is configured independently, so you can give one agent tight caps and another more latitude based on your trust level.
-</Accordion>
-
-<Accordion title="Does treasury yield affect my spending limits?">
-  No. Treasury yield operates in the background and does not interact with your policy caps. When your agent's liquid USDC balance exceeds a threshold you configure, Nebula automatically deposits the surplus into [Blend](https://blend.capital) lending pools to earn yield. When your balance drops below the threshold (because your agent is spending), Nebula withdraws from Blend to restore liquidity.
-
-  Your `max_per_call` and `max_per_day` caps apply to the USDC your agent is actively spending via tool calls — not to yield deposits or withdrawals, which are internal treasury operations. You will see yield activity in your spending report labeled separately from agent spend.
-
-  Use the `optimize_treasury` option from the dashboard if you want to manually trigger a rebalance.
-</Accordion>
-
-<Accordion title="How do I pause my agent immediately?">
-  Go to the **Policy** section of the [Nebula dashboard](https://nebulaonchain.xyz) and toggle the **Pause** switch. The change takes effect immediately — the next tool call your agent makes will be rejected with `policy_paused`.
-
-  Pausing is the fastest way to halt all agent spending without changing your token, restarting any process, or modifying configuration files. When you are ready to resume, toggle Pause off from the same screen.
-
-  Your agent can detect that it is paused by calling `get_policy_status` — the response will include `paused: true`.
-</Accordion>
-
-<Accordion title="What is Stellar8004 reputation?">
-  **Stellar8004** is an on-chain reputation system for AI agents built on Stellar. Every Nebula agent wallet can accumulate a verifiable track record of interactions with counterparties — APIs, services, and other agents.
-
-  After an interaction, counterparties can submit feedback on-chain. Nebula aggregates this into an `avgScore` between 0 and 100 for your agent's address. Because the data lives on Stellar, anyone can verify your agent's reputation without trusting a central authority.
-
-  Your agent can read its current reputation with the `get_reputation` tool and submit feedback on other parties with `submit_feedback`. A higher reputation score can unlock preferential rates or reduced confirmation requirements from services that integrate Stellar8004 checks.
-</Accordion>
-
-<Accordion title="Can I use Nebula without Claude or Cursor?">
-  Yes. Nebula works with any MCP-compatible framework, not just Claude Desktop or Cursor. The stdio package (`@nebula/mcp`) can be loaded by any MCP client that supports stdio transports.
-
-  For frameworks or environments that do not have a built-in MCP client, use the **remote MCP endpoint** directly. Any HTTP client can call `POST https://nebulaonchain.xyz/mcp` with a Bearer token and receive tool results via the standard MCP JSON-RPC protocol. This includes custom Python agents, Node.js scripts, serverless functions, LangChain/LangGraph pipelines, and more.
-
-  See [Remote MCP & OAuth](/configuration/remote-mcp-oauth) for connection examples.
-</Accordion>
+  <Accordion title="Is TrustLine available on mainnet?">
+    No — testnet only for now.
+  </Accordion>
+</AccordionGroup>

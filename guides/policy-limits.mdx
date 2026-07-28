@@ -1,0 +1,23 @@
+---
+title: "Set policy limits"
+description: "Configure per-tx and daily USDC caps, allow/deny lists, and pause in the dashboard."
+sidebarTitle: "Set policy limits"
+---
+
+# Set policy limits
+
+Policy is configured in the Hub dashboard for a selected agent. Agents can **read** policy via MCP (`get_policy_status`) but cannot change it.
+
+<Steps>
+  <Step title="Open Policy">
+    Sign in on [testnet](https://testnet.nebulaonchain.xyz) or [mainnet](https://mainnet.nebulaonchain.xyz) → select the agent → **Policy**.
+  </Step>
+  <Step title="Set caps">
+    Set per-transaction and daily USDC caps. Keep micro-payments under the threshold you intend for autonomous spend; larger amounts can require [confirmations](/concepts/confirmations).
+  </Step>
+  <Step title="Allow / deny">
+    Optionally restrict destinations with allowlists or block addresses with denylists. Pause blocks all spend until you clear it.
+  </Step>
+</Steps>
+
+Policy is scoped to the agent's network. A testnet agent does not share caps with a mainnet twin. See [Networks](/networks) and [Spending policy](/concepts/spending-policy).

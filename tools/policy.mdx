@@ -1,0 +1,36 @@
+---
+title: "Policy and identity tools"
+description: "Read policy, await confirmations, reputation, and TrustLine (testnet)."
+sidebarTitle: "Policy and identity"
+---
+
+# Policy and identity tools
+
+## Policy and confirmations
+
+| Tool | Params | Notes |
+| --- | --- | --- |
+| `get_policy_status` | — | Caps, spend today, pause, lists |
+| `await_confirmation` | `confirmation_id` | Poll up to 25s; re-call while pending |
+
+<a id="await_confirmation" />
+
+Policy **writes** are dashboard-only. See [Confirmations](/concepts/confirmations).
+
+## Reputation
+
+| Tool | Params | Notes |
+| --- | --- | --- |
+| `register_identity` | — | Stellar8004 identity (idempotent) |
+| `get_my_reputation` | — | Score and feedback stats |
+
+## TrustLine (testnet only)
+
+| Tool | Notes |
+| --- | --- |
+| `trustline_status` | Position snapshot |
+| `trustline_onboard` | Onboard |
+| `trustline_borrow` | Borrow |
+| `trustline_repay` | Repay |
+
+See [TrustLine credit](/guides/trustline).

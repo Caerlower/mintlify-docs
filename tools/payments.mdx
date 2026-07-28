@@ -1,0 +1,34 @@
+---
+title: "Payment tools"
+description: "Swaps, x402, and MPP session tools."
+sidebarTitle: "Payment tools"
+---
+
+# Payment tools
+
+## Swaps
+
+| Tool | Params | Notes |
+| --- | --- | --- |
+| `get_swap_quote` | `from_asset`, `to_asset`, `amount` | DEX quote |
+| `swap` | same \+ optional `max_slippage_bps` | Default slippage 100 bps (1%) |
+
+Assets are `XLM` or `USDC`. See [Swap guide](/guides/swap).
+
+## x402
+
+| Tool | Params | Notes |
+| --- | --- | --- |
+| `x402_fetch` | `url`, optional `max_amount_usdc` | Auto-pay HTTP 402 |
+| `x402_pay` | `url`, amount fields per schema | Pay known price |
+
+## MPP
+
+| Tool | Params | Notes |
+| --- | --- | --- |
+| `mpp_open_session` | budget \+ recipient | Opens channel |
+| `mpp_fetch` | URL | Off-chain commit \+ fetch |
+| `mpp_status` | — | Session snapshot |
+| `mpp_close_session` | — | Settle on-chain, refund unused |
+
+Guides: [x402](/guides/x402-payments), [MPP](/guides/mpp-sessions).

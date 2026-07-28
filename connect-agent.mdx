@@ -1,128 +1,86 @@
 ---
-title: "Connect Your Agent: Claude Desktop, Cursor, and More"
-sidebarTitle: "Connect Agent"
-description: "Step-by-step guide to creating a Nebula agent token and connecting Claude Desktop, Cursor, Claude Code, or a custom MCP client to your Stellar wallet."
+title: "Connect"
+sidebarTitle: "Connect"
+description: "Wire Claude Desktop, Cursor, Claude Code, or remote MCP to your Nebula agent."
 ---
 
-Every agent that talks to Nebula needs a bearer token — a short string that starts with `nbl_live_…`. This token tells the Hub which wallet to use, which policy to enforce, and how to attribute transactions in your dashboard. This page explains how to create that token and how to wire it into whichever client you are using.
+# Connect
 
-## Getting your token
+Every agent needs a `nbl_live_…` bearer token from the Hub **Connect** page. The token is bound to that agent's ledger — point MCP at the **same host** where you created it.
 
-1. Sign in at [nebulaonchain.xyz](https://nebulaonchain.xyz).
-2. Go to the **Connect** page in the sidebar.
-3. Click **New Agent**, give it a descriptive name, and click **Create**.
-4. Copy the `nbl_live_…` token immediately — it is only shown in full once. If you lose it, you can regenerate a new token from the dashboard; the old token will stop working.
+<Steps>
+  <Step title="Create a token">
+    1. Sign in at [testnet.nebulaonchain.xyz](https://testnet.nebulaonchain.xyz) or [mainnet.nebulaonchain.xyz](https://mainnet.nebulaonchain.xyz).
+    2. Open **Connect** → create an agent → copy `nbl_live_…` (shown once; regenerate if lost).
+  </Step>
+</Steps>
 
-<Note>
-  Each agent you create gets its own token and its own row in the Approvals and Activity views. Give agents meaningful names like `cursor-dev`, `claude-research`, or `prod-payment-bot` so you can tell them apart in the dashboard.
-</Note>
+## Environment
 
-## Connection options
-
-<Tabs>
-  <Tab title="Claude Desktop">
-    Open `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS (or `%APPDATA%\Claude\claude_desktop_config.json` on Windows). Add the `nebula` entry inside `mcpServers`:
-
-    ```json claude_desktop_config.json
-    {
-      "mcpServers": {
-        "nebula": {
-          "command": "npx",
-          "args": ["-y", "@nebula/mcp"],
-          "env": {
-            "NEBULA_TOKEN": "nbl_live_…"
-          }
-        }
-      }
-    }
-    ```
-
-    Save the file and restart Claude Desktop. Claude will launch `@nebula/mcp` as a subprocess on startup and keep it running for the session.
-  </Tab>
-
-  <Tab title="Cursor">
-    Open **Cursor Settings → MCP** (or edit `~/.cursor/mcp.json` directly) and add:
-
-    ```json Cursor MCP config
-    {
-      "mcpServers": {
-        "nebula": {
-          "command": "npx",
-          "args": ["-y", "@nebula/mcp"],
-          "env": {
-            "NEBULA_TOKEN": "nbl_live_…"
-          }
-        }
-      }
-    }
-    ```
-
-    Toggle the Nebula server off and back on in the MCP settings panel to pick up the change without restarting Cursor.
-  </Tab>
-
-  <Tab title="Claude Code">
-    Claude Code reads MCP configuration from the same `claude_desktop_config.json` file, or you can pass the token as an environment variable when launching:
-
-    ```bash
-    NEBULA_TOKEN=nbl_live_… claude
-    ```
-
-    If you prefer a project-scoped config, create `.claude/mcp.json` in your project root with the same JSON structure shown for Claude Desktop.
-  </Tab>
-
-  <Tab title="Remote MCP (Streamable HTTP)">
-    For hosted agents that cannot run a local subprocess, the Hub exposes a Streamable HTTP MCP endpoint directly. Send all tool calls as `POST` requests to:
-
-    ```
-    POST https://nebulaonchain.xyz/mcp
-    Authorization: Bearer nbl_live_…
-    Content-Type: application/json
-    ```
-
-    This is the right choice for serverless functions, Docker containers, or any environment where `npx` is not available. No package installation is needed — your agent talks to the Hub directly over HTTP.
-
-    For automated OAuth flows (for example, hosted AI connectors), the Hub also supports OAuth 2.0 Dynamic Client Registration:
-    - Discovery: `GET /.well-known/oauth-authorization-server`
-    - Register: `POST /api/oauth/register`
-    - Authorise: `/authorize`
-    - Token: `POST /oauth/token` (access tokens expire after 30 days)
-  </Tab>
-</Tabs>
-
-## Environment variables
-
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `NEBULA_TOKEN` | **Yes** | — | Your `nbl_live_…` bearer token from the Connect page. |
-| `NEBULA_HUB` | No | `https://nebulaonchain.xyz` | Override to point at a self-hosted Hub or local development instance (e.g. `http://localhost:3000`). |
-
-## Verifying the connection
-
-Once your client is configured, ask your agent:
-
-> "Call the Nebula ping tool."
-
-A successful response looks like:
-
-```
-Nebula is alive
-2025-01-15T10:23:45.000Z
-```
-
-You can also ask for your wallet address to confirm the token is mapping to the right wallet:
-
-> "What is my Nebula wallet address?"
-
-The agent will call `get_address` and return your Stellar public key (a `G…` string).
-
-## Security note: token vs secret key
-
-Your `NEBULA_TOKEN` is a **bearer token** — it authorises tool calls but has no ability to sign Stellar transactions directly. Signing is always done inside the Hub, after policy checks pass.
-
-A Stellar secret key (which starts with `S`) would give anyone who holds it full, unconstrained control of the wallet. Nebula is designed so you never need to handle one.
+| Variable | Required | Description |
+| --- | --- | --- |
+| `NEBULA_TOKEN` | Yes | `nbl_live_…` from Connect |
+| `NEBULA_HUB` | Yes (recommended) | Hub host matching the token — `https://testnet.nebulaonchain.xyz` or `https://mainnet.nebulaonchain.xyz` |
 
 <Warning>
-  Never put a Stellar secret key in your MCP configuration, environment files, or agent prompts. If any integration asks for an `S…` key, do not use it with Nebula.
+  Do not use the apex domain (`nebulaonchain.xyz`) for MCP or `/mcp`. Apex product routes redirect and can drop Bearer tokens. See [Networks](/networks).
 </Warning>
 
-If your `NEBULA_TOKEN` is ever exposed, go to the dashboard immediately, revoke the token, and create a new one. Your wallet funds remain safe because the token alone cannot sign transactions without the Hub's policy layer.
+## Claude Desktop / Cursor (stdio)
+
+```json
+{
+  "mcpServers": {
+    "nebula": {
+      "command": "npx",
+      "args": ["-y", "nebulamcp-stdio"],
+      "env": {
+        "NEBULA_TOKEN": "nbl_live_…",
+        "NEBULA_HUB": "https://testnet.nebulaonchain.xyz"
+      }
+    }
+  }
+}
+```
+
+Package: [`nebulamcp-stdio`](https://www.npmjs.com/package/nebulamcp-stdio). Restart Claude Desktop after edits; in Cursor, toggle the MCP server.
+
+## Claude Code
+
+Prefer remote HTTP MCP (no stdio package):
+
+```text
+POST https://testnet.nebulaonchain.xyz/mcp
+Authorization: Bearer nbl_live_…
+```
+
+Or use the same `nebulamcp-stdio` JSON in `.claude/mcp.json` / Claude Desktop config if you need local stdio.
+
+## Remote MCP (Streamable HTTP)
+
+For hosted agents that cannot run `npx`:
+
+```text
+POST https://testnet.nebulaonchain.xyz/mcp
+Authorization: Bearer nbl_live_…
+Content-Type: application/json
+```
+
+Use the mainnet host when the token was minted there.
+
+## OAuth (hosted connectors)
+
+Dynamic Client Registration on the ledger host:
+
+| Step | Endpoint |
+| --- | --- |
+| Discovery | `GET /.well-known/oauth-authorization-server` |
+| Register | `POST /api/oauth/register` |
+| Authorize | `/authorize` |
+| Token | `POST /oauth/token` (access tokens expire in 30 days) |
+
+## Verify
+
+Ask the agent to call `ping`, then `get_address`. On success you get a timestamp and a `G…` address.
+
+If a token is exposed, revoke it in the dashboard and create a new one. The token alone cannot sign without Hub policy checks.
