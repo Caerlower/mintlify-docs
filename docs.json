@@ -22,6 +22,7 @@
           {
             "group": "Get started",
             "pages": [
+              "index",
               "introduction",
               "quickstart",
               "networks",
@@ -118,6 +119,16 @@
     },
     {
       "source": "/tools/payments/mpp-open-session",
+      "destination": "/tools/payments",
+      "permanent": true
+    },
+    {
+      "source": "/tools/wallet/check-balance",
+      "destination": "/tools/wallet",
+      "permanent": true
+    },
+    {
+      "source": "/tools/payments/x402-pay",
       "destination": "/tools/payments",
       "permanent": true
     }
