@@ -32,6 +32,7 @@
           {
             "group": "Concepts",
             "pages": [
+              "concepts/architecture",
               "concepts/how-it-works",
               "concepts/wallet-custody",
               "concepts/spending-policy",
