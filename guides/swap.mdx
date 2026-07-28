@@ -1,0 +1,25 @@
+---
+title: "Swap XLM and USDC"
+description: "Get a quote and swap XLM ↔ USDC on the Stellar DEX via MCP."
+sidebarTitle: "Swap XLM ↔ USDC"
+---
+
+# Swap XLM ↔ USDC
+
+Agents can swap between XLM and USDC on the Stellar DEX.
+
+<Steps>
+  <Step title="Fund and trustline">
+    Fund XLM. If swapping into USDC, open a Circle USDC trustline from Connect if needed.
+  </Step>
+  <Step title="Quote">
+    Call `get_swap_quote` with `from_asset`, `to_asset`, and `amount`.
+  </Step>
+  <Step title="Swap">
+    Call `swap` with the same fields. Optional `max_slippage_bps` (default `100` = 1%). Large notional may require confirmation.
+  </Step>
+</Steps>
+
+Swaps use path payment strict-send. They do **not** count toward daily outbound spend caps the same way transfers do.
+
+See [Payment tools](/tools/payments).

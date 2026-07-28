@@ -1,77 +1,31 @@
 ---
-title: "Nebula — Stellar Wallet and Payments for AI Agents"
+title: "Nebula: Treasury Infra for AI Agents"
 sidebarTitle: "Home"
 description: "Add a full Stellar wallet to any AI agent in minutes: on-chain spending policy, x402 and MPP payments, automated yield, and verifiable reputation."
 ---
 
-Nebula is an MCP (Model Context Protocol) server that equips your AI agents with a full-featured Stellar wallet. Connect it to Claude, Cursor, or any MCP-compatible framework in minutes — your agent can then pay for APIs, earn yield on idle funds, and build an on-chain reputation, all without ever holding private keys.
+# Nebula
+
+Nebula is treasury infrastructure for AI agents on Stellar. Each agent gets an isolated wallet, spend policy, and payment rails. Agents authenticate with a `nbl_live_…` token (or OAuth). Private keys never leave the Hub.
 
 <CardGroup cols={2}>
-  <Card title="Quick Start" icon="rocket" href="/quickstart">
-    Connect Nebula to your agent in under five minutes
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Connect Claude Desktop or Cursor in a few minutes.
   </Card>
-  <Card title="Connect an Agent" icon="plug" href="/connect-agent">
-    Get your token and wire up Claude Desktop or Cursor
+
+  <Card title="Networks" icon="globe" href="/networks">
+    Testnet and mainnet are separate. Use the host that matches your token.
   </Card>
-  <Card title="Tools Reference" icon="wrench" href="/tools/overview">
-    Browse every MCP tool available to your agent
+
+  <Card title="Connect" icon="plug" href="/connect-agent">
+    Stdio MCP, remote HTTP MCP, and OAuth.
   </Card>
-  <Card title="Spending Policy" icon="shield-check" href="/concepts/spending-policy">
-    On-chain caps your agent literally cannot bypass
+
+  <Card title="Tools" icon="wrench" href="/tools/overview">
+    Every MCP tool your agent can call.
   </Card>
 </CardGroup>
 
-## What Nebula gives your agent
-
-<CardGroup cols={2}>
-  <Card title="Stellar Wallet" icon="wallet">
-    Every agent gets a dedicated Stellar address. XLM and USDC balances, transfers, and identity — all managed through tools the agent calls naturally.
-  </Card>
-  <Card title="On-Chain Policy" icon="lock">
-    Spending limits live in a Soroban smart contract, not a config file. Set micro-thresholds, per-transaction caps, and daily caps — the chain enforces them.
-  </Card>
-  <Card title="x402 & MPP Payments" icon="credit-card">
-    Agents pay HTTP 402 paywalls automatically with `x402_fetch`, and open streaming payment channels with MPP for per-call or per-resource billing.
-  </Card>
-  <Card title="Automated Yield" icon="chart-line">
-    Idle funds route to Blend DeFi pools and return the instant your agent needs them. Set a liquidity threshold and let treasury management run itself.
-  </Card>
-  <Card title="Human Approvals" icon="user-check">
-    High-value transfers pause for human confirmation. Your agent calls `await_confirmation` while you approve or reject from the dashboard.
-  </Card>
-  <Card title="On-Chain Reputation" icon="star">
-    Every action builds a Stellar8004 reputation score. Other agents and services can verify your agent's track record on-chain.
-  </Card>
-</CardGroup>
-
-## How it works in three steps
-
-<Steps>
-  <Step title="Sign in and create an agent">
-    Go to [nebulaonchain.xyz](https://nebulaonchain.xyz), sign in, and navigate to **Connect**. Create an agent to get your `nbl_live_…` token. A Stellar wallet is provisioned automatically.
-  </Step>
-  <Step title="Add Nebula to your MCP client">
-    Paste your token into your Claude Desktop or Cursor config. Nebula uses the `@nebula/mcp` stdio package — no private keys ever leave Nebula's custody.
-
-    ```json claude_desktop_config.json
-    {
-      "mcpServers": {
-        "nebula": {
-          "command": "npx",
-          "args": ["-y", "@nebula/mcp"],
-          "env": {
-            "NEBULA_TOKEN": "nbl_live_…"
-          }
-        }
-      }
-    }
-    ```
-  </Step>
-  <Step title="Set your policy and let it work">
-    Configure spending caps in the dashboard. Your agent can now pay for APIs with x402, open MPP payment channels, earn yield on idle USDC, and register an on-chain identity — all within the limits you set.
-  </Step>
-</Steps>
-
-<Note>
-  Private keys never leave Nebula's Hub. Your agent only presents its `nbl_live_…` token — never a Stellar secret key.
-</Note>
+<Warning>
+  Never put a Stellar secret key (`S…`) in MCP config. Only use `NEBULA_TOKEN`.
+</Warning>

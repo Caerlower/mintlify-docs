@@ -1,106 +1,26 @@
 ---
-title: "Spending Policy and Transaction Limits for AI Agents"
-sidebarTitle: "Spending Policy"
+title: "Spending policy"
+sidebarTitle: "Spending policy"
 description: "Nebula enforces per-transaction caps, daily limits, address whitelists, and denylists before every transaction is signed. Learn how each check works."
 ---
 
-Giving an AI agent access to a real wallet means you need real guardrails — not just settings in a config file that a clever prompt could theoretically route around. Nebula enforces your spending policy in two places: in the Hub's policy engine (which runs before every transaction is signed) and optionally in a **Soroban smart contract** on the Stellar blockchain, which provides an independent second layer of enforcement that the Hub itself cannot bypass.
+# Spending policy
 
-This page explains every check in the policy matrix, what each outcome means, and how to configure your policy from the dashboard.
+Before the Hub signs spend, it evaluates your agent's policy (Postgres, plus on-chain Soroban checks when configured for that network).
 
-## The confirmation matrix
+## Checks
 
-Every transfer is evaluated through a sequence of checks in order. The first check that matches determines the outcome — subsequent checks are not evaluated.
+| Control | Behavior |
+| --- | --- |
+| Per-transaction cap | Max USDC-equivalent per spend |
+| Daily cap | Rolling daily USDC-equivalent total |
+| Allow / deny lists | Destination address rules |
+| Pause | Blocks spend until you unpause |
 
-<Steps>
-  <Step title="Paused">
-    If your policy is set to **paused**, every transaction is rejected immediately, regardless of destination, amount, or any other field.
+Amounts are evaluated in USDC terms (including XLM transfers via live FX). DEX swaps do not count toward daily outbound spend caps the same way transfers do. See [Swap](/guides/swap).
 
-    **Outcome: `reject` with reason `policy_paused`**
+## Who can change policy
 
-    Use this when you want to temporarily freeze all agent spending — for example, while you investigate unusual activity or reconfigure your policy.
-  </Step>
+**Dashboard only.** Agents can call `get_policy_status` and `spending_report`. They cannot mutate caps or lists via MCP.
 
-  <Step title="Denylist">
-    If the destination address appears in your **denylist**, the transaction is rejected.
-
-    **Outcome: `reject` with reason `destination_denylisted`**
-
-    Add addresses to the denylist to permanently block your agent from ever sending funds to them, regardless of amount.
-  </Step>
-
-  <Step title="Daily cap">
-    The Hub tracks total USDC-equivalent spend in the last 24 hours. If adding the current transfer would exceed your **daily cap**, the transaction is rejected.
-
-    **Outcome: `reject` with reason `exceeds_daily_cap`**
-
-    The daily cap resets on a rolling 24-hour window, not at midnight. XLM transfers are converted to USDC using the live XLM/USD rate before this check runs.
-  </Step>
-
-  <Step title="Per-transaction cap">
-    If the single transfer amount (in USDC equivalent) exceeds your **per-transaction cap**, it is rejected.
-
-    **Outcome: `reject` with reason `exceeds_per_tx_cap`**
-
-    The whitelist never bypasses the per-tx cap. Even a known, trusted address cannot receive more than this limit in a single transaction.
-  </Step>
-
-  <Step title="Micro threshold">
-    If the transfer amount is at or below your **micro threshold** (and it has not already been rejected above), it is auto-approved without requiring any human confirmation.
-
-    **Outcome: `auto` with reason `within_micro_threshold`**
-
-    The micro threshold is your friction-free zone. Set it to the maximum amount you are comfortable with your agent spending without asking — for example, $1 USDC for small API payments.
-  </Step>
-
-  <Step title="Whitelist">
-    If the destination address is in your **whitelist** and the amount is within the per-tx cap (and above the micro threshold), the transaction is auto-approved.
-
-    **Outcome: `auto` with reason `whitelisted_within_per_tx_cap`**
-
-    Add frequently-used, trusted addresses (for example, your own wallets or known service providers) to the whitelist so your agent can pay them without prompting you each time.
-  </Step>
-
-  <Step title="New destination — confirmation required">
-    If the destination is not on the denylist, the amount is within the daily and per-tx caps, the amount is above the micro threshold, and the destination is not on the whitelist — the transaction requires **human confirmation**.
-
-    **Outcome: `confirm` with reason `new_destination_requires_confirmation`**
-
-    Your agent receives a `confirmation_required` response with a `confirmation_id`. It will wait for you to approve or reject from the dashboard.
-  </Step>
-</Steps>
-
-## The three outcomes
-
-| Outcome | What happens |
-|---|---|
-| `auto` | The Hub signs the transaction immediately and broadcasts it to Stellar. The tool returns `status: "ok"` with the transaction hash. |
-| `confirm` | The Hub creates a pending approval record and returns `status: "confirmation_required"`. The agent must poll with `await_confirmation` while you review the request in the dashboard. |
-| `reject` | No transaction is created. The tool returns `status: "rejected"` with a reason string. The agent should surface this to you as an error. |
-
-## USDC amounts and XLM conversion
-
-All policy caps are denominated in **USDC**. When your agent calls `transfer` with an `amount_xlm` value, the Hub fetches the live XLM/USD exchange rate and converts the amount to USDC before running the policy matrix.
-
-This means your caps work consistently regardless of whether your agent is sending XLM or USDC directly — you always set limits in a stable, dollar-denominated unit.
-
-## Configuring your policy
-
-All policy settings are managed from the **Policy** page in your dashboard at [nebulaonchain.xyz](https://nebulaonchain.xyz). You can:
-
-- Set per-transaction and daily caps (in USDC).
-- Set the micro threshold (in USDC).
-- Add and remove addresses from the whitelist and denylist.
-- Pause and unpause the policy instantly.
-
-Changes take effect immediately for all subsequent tool calls — there is no deployment step.
-
-<Note>
-  When the `POLICY_CONTRACT_ID` environment variable is configured on the Hub, policy caps are also enforced by a Soroban smart contract on Stellar. On-chain enforcement acts as a second, independent check that does not rely on Hub database state — even if the Hub were somehow bypassed, the contract would reject out-of-bounds transactions.
-</Note>
-
-## Recommended starting configuration
-
-<Tip>
-  A good starting point: set the micro threshold to $1 USDC (covers most small API payments without interruption), the per-tx cap to $10 USDC, and the daily cap to $50 USDC. Whitelist addresses you pay regularly. Raise limits only as you gain confidence in your agent's behaviour.
-</Tip>
+Configure limits in the Hub: [Set policy limits](/guides/policy-limits).

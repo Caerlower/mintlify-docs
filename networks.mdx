@@ -1,0 +1,44 @@
+---
+title: "Networks"
+description: "Testnet and mainnet are twin ledgers with separate agents, policy, and MCP hosts."
+sidebarTitle: "Networks"
+---
+
+# Networks
+
+Nebula runs **two fully separate ledgers**. Agents, wallets, policy, treasury, and history do not cross between them.
+
+| Host | Ledger |
+| --- | --- |
+| [testnet.nebulaonchain.xyz](https://testnet.nebulaonchain.xyz) | Testnet (default for trying Nebula) |
+| [mainnet.nebulaonchain.xyz](https://mainnet.nebulaonchain.xyz) | Mainnet |
+| [nebulaonchain.xyz](https://nebulaonchain.xyz) | Marketing landing only |
+
+## Twin isolation
+
+|  | Testnet | Mainnet |
+| --- | --- | --- |
+| Agents | Own rows and wallets | Separate agents (not auto-cloned) |
+| Policy / treasury / history | `network=testnet` | `network=mainnet` |
+| Blend | Testnet pools (XLM) | Mainnet pools (XLM and USDC) |
+| TrustLine / Fianza credit | Available | Not enabled |
+
+Switch networks with the dashboard **NetworkChip**. You sign in again on the other host.
+
+## MCP host binding
+
+Tokens are minted on a specific host. Set `NEBULA_HUB` (stdio) or the remote MCP URL to **that same host**.
+
+```text
+# Token from testnet Connect
+NEBULA_HUB=https://testnet.nebulaonchain.xyz
+POST https://testnet.nebulaonchain.xyz/mcp
+
+# Token from mainnet Connect
+NEBULA_HUB=https://mainnet.nebulaonchain.xyz
+POST https://mainnet.nebulaonchain.xyz/mcp
+```
+
+<Warning>
+  Do not call `/mcp` on the apex domain. Apex product routes redirect to testnet and can drop `Authorization` headers.
+</Warning>
